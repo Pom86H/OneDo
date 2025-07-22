@@ -11,11 +11,14 @@ struct CalendarView: View {
     // カレンダーの表示に使うCalendarインスタンス
     private let calendar = Calendar.current
 
+    // MARK: - 日本語の曜日略称を追加
+    private let japaneseWeekdaySymbols = ["日", "月", "火", "水", "木", "金", "土"]
+
     var body: some View {
         VStack {
             // MARK: - 曜日ヘッダー
             HStack {
-                ForEach(calendar.shortWeekdaySymbols, id: \.self) { weekdaySymbol in
+                ForEach(japaneseWeekdaySymbols, id: \.self) { weekdaySymbol in
                     Text(weekdaySymbol)
                         .font(.caption)
                         .fontWeight(.medium) // フォントの太さを調整
@@ -155,3 +158,4 @@ struct DayCell: View {
         }
     }
 }
+

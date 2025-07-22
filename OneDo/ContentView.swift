@@ -32,6 +32,20 @@ struct ContentView: View {
         var id: String { self.rawValue }
     }
 
+    // MARK: - フィルタリングオプション用のState変数
+    @State private var selectedFilterOption: FilterOption = .all
+
+    enum FilterOption: String, CaseIterable, Identifiable {
+        case all = "すべて"
+        case completed = "完了済み"
+        case incomplete = "未完了"
+
+        var id: String { self.rawValue }
+    }
+
+    // MARK: - Listの編集モードを制御するState変数
+    @Environment(\.editMode) var editMode
+
 
     var body: some View {
         NavigationView {
@@ -74,12 +88,35 @@ struct ContentView: View {
                 CalendarView(month: currentMonth, habits: habits, selectedDate: $selectedDate)
                     .padding(.bottom, 10)
 
+                // MARK: - フィルタリングオプションのPicker
+                Picker("表示", selection: $selectedFilterOption) {
+                    ForEach(FilterOption.allCases, id: \.self) { option in
+                        Text(option.rawValue).tag(option)
+                    }
+                }
+                .pickerStyle(.segmented) // セグメントピッカーで表示
+                .padding(.horizontal)
+                .padding(.bottom, 10) // パディングを調整
+
                 List {
                     // Today's Habits セクション
                     Section { // ヘッダーは別に定義するため、Sectionの引数を削除
                         // フィルタリングとソートを適用した習慣リスト
                         let processedHabitsIndices = habits.indices
-                            .filter { habits[$0].repeatSchedule.isDue(on: selectedDate) }
+                            .filter { index in
+                                let habit = habits[index]
+                                // 繰り返しスケジュールとフィルタリングオプションの両方を考慮
+                                let isDueToday = habit.repeatSchedule.isDue(on: selectedDate)
+                                
+                                switch selectedFilterOption {
+                                case .all:
+                                    return isDueToday
+                                case .completed:
+                                    return isDueToday && habit.isCompleted(on: selectedDate)
+                                case .incomplete:
+                                    return isDueToday && !habit.isCompleted(on: selectedDate)
+                                }
+                            }
                             .sorted { (index1, index2) -> Bool in
                                 let habit1 = habits[index1]
                                 let habit2 = habits[index2]
@@ -196,7 +233,7 @@ struct ContentView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        // MARK: - ソートオプションのメニューをツールバーに追加
+                        // MARK: - ソートオプションのメニュー
                         Menu {
                             Picker("並べ替え", selection: $selectedSortOption) {
                                 ForEach(SortOption.allCases, id: \.self) { option in
@@ -219,8 +256,14 @@ struct ContentView: View {
                         }
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
-                        EditButton()
-                            .foregroundColor(.accentColor) // Editボタンの色を合わせる
+                        // MARK: - EditButtonを日本語化されたカスタムボタンに置き換え
+                        Button(action: {
+                            // editModeの状態を切り替える
+                            editMode?.wrappedValue = (editMode?.wrappedValue == .active) ? .inactive : .active
+                        }) {
+                            Text(editMode?.wrappedValue == .active ? "完了" : "編集")
+                                .foregroundColor(.accentColor)
+                        }
                     }
                 }
                 .sheet(isPresented: $showingAddHabitSheet) {
