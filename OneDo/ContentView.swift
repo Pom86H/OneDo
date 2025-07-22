@@ -12,6 +12,10 @@ struct ContentView: View {
     // 選択された日付 (カレンダービューとリストで共有)
     @State private var selectedDate: Date = Date()
 
+    // MARK: - 編集中の習慣を保持するState変数とシート表示フラグを追加
+    @State private var selectedHabitForEdit: Habit? = nil
+    @State private var showingEditHabitSheet = false
+
 
     var body: some View {
         NavigationView {
@@ -121,6 +125,13 @@ struct ContentView: View {
                                         Label("削除", systemImage: "trash.fill")
                                     }
                                 }
+                                // MARK: - 習慣の詳細編集画面表示
+                                .onTapGesture {
+                                    // タップされた習慣を編集対象として設定
+                                    selectedHabitForEdit = habit
+                                    // 編集シートを表示
+                                    showingEditHabitSheet = true
+                                }
                             }
                             // MARK: - onDeleteについて (コメントアウトを解除し、swipeActionsに置き換え)
                             // .onDelete(perform: deleteHabit) // この行は削除またはコメントアウトのまま
@@ -156,6 +167,17 @@ struct ContentView: View {
                         habits.append(newHabit)
                         saveHabits()
                         scheduleNotifications() // 新しい習慣が追加されたら通知をスケジュール
+                    }
+                }
+                // MARK: - EditHabitViewのシート表示
+                .sheet(item: $selectedHabitForEdit) { habitToEdit in
+                    // BindingとしてEditHabitViewに渡す
+                    if let index = habits.firstIndex(where: { $0.id == habitToEdit.id }) {
+                        EditHabitView(habit: $habits[index]) {
+                            // 保存ボタンが押されたら、データを保存し通知を再スケジュール
+                            saveHabits()
+                            scheduleNotifications()
+                        }
                     }
                 }
                 .onAppear(perform: {
