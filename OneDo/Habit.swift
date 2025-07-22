@@ -14,13 +14,22 @@ struct Habit: Identifiable, Codable {
     var reminderEnabled: Bool // リマインダーが有効かどうか
     var reminderDaysOfWeek: Set<Int> // リマインダーを鳴らす曜日 (1=日曜, 2=月曜...7=土曜)
 
+    // MARK: - 目標設定関連のプロパティを追加
+    var goalType: GoalType // 目標のタイプ (例: 回数、時間)
+    var targetValue: Double? // 目標値 (例: 10回、30分)
+    var unit: String? // 単位 (例: "回", "分")
+
+
     // イニシャライザ。idのデフォルト値はUUID()にする
     init(id: UUID = UUID(), name: String, isCompleted: Bool,
          repeatSchedule: RepeatSchedule = .daily,
          completionDates: [Date] = [],
          reminderTime: Date? = nil, // デフォルトはnil (設定なし)
          reminderEnabled: Bool = false, // デフォルトは無効
-         reminderDaysOfWeek: Set<Int> = [] // デフォルトは空のセット
+         reminderDaysOfWeek: Set<Int> = [], // デフォルトは空のセット
+         goalType: GoalType = .none, // デフォルトは目標なし
+         targetValue: Double? = nil, // デフォルトはnil
+         unit: String? = nil // デフォルトはnil
     ) {
         self.id = id
         self.name = name
@@ -30,6 +39,9 @@ struct Habit: Identifiable, Codable {
         self.reminderTime = reminderTime
         self.reminderEnabled = reminderEnabled
         self.reminderDaysOfWeek = reminderDaysOfWeek
+        self.goalType = goalType
+        self.targetValue = targetValue
+        self.unit = unit
     }
 
     // 特定の日付で達成されたかどうかをチェックするヘルパープロパティ
@@ -39,7 +51,7 @@ struct Habit: Identifiable, Codable {
         Calendar.current.isDate(date, containedIn: completionDates)
     }
 
-    // MARK: - 連続達成日数を計算するプロパティを追加
+    // MARK: - 連続達成日数を計算するプロパティ
     var currentStreak: Int {
         let calendar = Calendar.current
         var streak = 0
@@ -77,10 +89,18 @@ struct Habit: Identifiable, Codable {
         case weekends = "週末" // 土日
         case weekly = "毎週" // 任意の曜日を選択（別途設定が必要になるが、ここではシンプルに）
     }
+
+    // MARK: - 目標のタイプを定義するEnumを追加
+    enum GoalType: String, Codable, CaseIterable, Identifiable {
+        case none = "目標なし"
+        case count = "回数"
+        case duration = "時間"
+
+        var id: String { self.rawValue } // Identifiableに準拠
+    }
 }
 
 // MARK: - RepeatScheduleの拡張 (繰り返し頻度に応じた表示ロジック)
-// この拡張がHabit.swiftに存在することを確認してください
 extension Habit.RepeatSchedule {
     func isDue(on date: Date) -> Bool {
         let calendar = Calendar.current

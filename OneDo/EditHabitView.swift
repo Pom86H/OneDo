@@ -6,10 +6,15 @@ struct EditHabitView: View {
     // シートを閉じるための環境変数
     @Environment(\.dismiss) var dismiss
 
-    // リマインダー設定の内部状態（変更があったか追跡するため）
+    // リマインダー設定の内部状態
     @State private var reminderEnabled: Bool
     @State private var reminderTime: Date
     @State private var reminderDaysOfWeek: Set<Int>
+
+    // MARK: - 目標設定の内部状態を追加
+    @State private var selectedGoalType: Habit.GoalType
+    @State private var targetValueInput: String
+    @State private var unitInput: String 
 
     // 変更が保存された際に呼び出すクロージャ
     var onSave: () -> Void
@@ -23,6 +28,13 @@ struct EditHabitView: View {
         _reminderEnabled = State(initialValue: habit.wrappedValue.reminderEnabled)
         _reminderTime = State(initialValue: habit.wrappedValue.reminderTime ?? Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date())
         _reminderDaysOfWeek = State(initialValue: habit.wrappedValue.reminderDaysOfWeek)
+
+        // MARK: - 目標設定関連のState初期化
+        _selectedGoalType = State(initialValue: habit.wrappedValue.goalType)
+        // ここを修正: String(describing:) を使用して明示的に変換
+        _targetValueInput = State(initialValue: habit.wrappedValue.targetValue.map { String(describing: $0) } ?? "")
+        // ここを修正: unitがnilの場合に空文字列を返すように
+        _unitInput = State(initialValue: habit.wrappedValue.unit ?? "")
     }
 
     var body: some View {
@@ -63,6 +75,22 @@ struct EditHabitView: View {
                         }
                     }
                 }
+
+                // MARK: - 目標設定セクションを追加
+                Section("目標設定") {
+                    Picker("目標タイプ", selection: $selectedGoalType) { // 内部State
+                        ForEach(Habit.GoalType.allCases, id: \.self) { type in
+                            Text(type.rawValue).tag(type)
+                        }
+                    }
+
+                    if selectedGoalType != .none {
+                        TextField("目標値", text: $targetValueInput) // 内部State
+                            .keyboardType(.decimalPad)
+
+                        TextField("単位 (例: 回, 分)", text: $unitInput) // 内部State
+                    }
+                }
             }
             .navigationTitle("習慣を編集")
             .navigationBarTitleDisplayMode(.inline)
@@ -78,6 +106,11 @@ struct EditHabitView: View {
                         habit.reminderEnabled = reminderEnabled
                         habit.reminderTime = reminderEnabled ? reminderTime : nil
                         habit.reminderDaysOfWeek = (reminderEnabled && habit.repeatSchedule == .weekly) ? reminderDaysOfWeek : []
+
+                        // MARK: - 目標設定関連の値をBindingに反映
+                        habit.goalType = selectedGoalType
+                        habit.targetValue = Double(targetValueInput) // StringをDouble?に変換
+                        habit.unit = unitInput.isEmpty ? nil : unitInput // 空文字列ならnil
 
                         onSave() // 保存アクションを呼び出し
                         dismiss()
@@ -100,7 +133,10 @@ struct EditHabitView: View {
 //             repeatSchedule: .daily,
 //             reminderTime: Calendar.current.date(bySettingHour: 8, minute: 30, second: 0, of: Date()),
 //             reminderEnabled: true,
-//             reminderDaysOfWeek: []
+//             reminderDaysOfWeek: [],
+//             goalType: .count, // プレビュー用に目標設定
+//             targetValue: 10,
+//             unit: "回"
 //         )
 //
 //         var body: some View {
