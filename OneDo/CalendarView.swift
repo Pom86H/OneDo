@@ -14,15 +14,22 @@ struct CalendarView: View {
     // MARK: - 日本語の曜日略称を追加
     private let japaneseWeekdaySymbols = ["日", "月", "火", "水", "木", "金", "土"]
 
+    // MARK: - カスタムカラーの定義 (ContentViewと合わせておく)
+    let customAccentColor = Color(red: 0xE4/255.0, green: 0xC1/255.0, blue: 0xB5/255.0)
+    let customBaseColor = Color(red: 0xEA/255.0, green: 0xE6/255.0, blue: 0xE1/255.0)
+    let customTextColor = Color(red: 0x54/255.0, green: 0x4C/255.0, blue: 0x40/255.0)
+
+
     var body: some View {
         VStack {
             // MARK: - 曜日ヘッダー
             HStack {
+                // MARK: - 日本語の曜日略称を使用
                 ForEach(japaneseWeekdaySymbols, id: \.self) { weekdaySymbol in
                     Text(weekdaySymbol)
                         .font(.caption)
                         .fontWeight(.medium) // フォントの太さを調整
-                        .foregroundColor(.secondary) // 色をセカンダリカラーに
+                        .foregroundColor(customTextColor) // カスタムカラーを適用
                         .frame(maxWidth: .infinity)
                 }
             }
@@ -34,7 +41,10 @@ struct CalendarView: View {
                     // 月内の日付かどうかをチェック
                     if calendar.isDate(date, equalTo: month, toGranularity: .month) {
                         // 月内の日付
-                        DayCell(date: date, habits: habits, selectedDate: $selectedDate)
+                        DayCell(date: date, habits: habits, selectedDate: $selectedDate,
+                                customAccentColor: customAccentColor, // カスタムカラーを渡す
+                                customBaseColor: customBaseColor,     // カスタムカラーを渡す
+                                customTextColor: customTextColor)     // カスタムカラーを渡す
                     } else {
                         // 月外の日付（空白セル）
                         Color.clear
@@ -99,6 +109,11 @@ struct DayCell: View {
     let habits: [Habit]
     @Binding var selectedDate: Date
 
+    // MARK: - カスタムカラーを受け取るプロパティを追加
+    let customAccentColor: Color
+    let customBaseColor: Color
+    let customTextColor: Color
+
     private let calendar = Calendar.current
 
     // その日が今日かどうか
@@ -127,7 +142,7 @@ struct DayCell: View {
             .clipShape(Circle()) // 円形にクリップ
             .overlay(
                 Circle()
-                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2) // 選択された日付に枠線
+                    .stroke(isSelected ? customAccentColor : Color.clear, lineWidth: 2) // 選択された日付に枠線
             )
             .onTapGesture {
                 selectedDate = date // タップされた日付を選択
@@ -137,13 +152,13 @@ struct DayCell: View {
     // セルの背景色を計算
     private var backgroundColor: Color {
         if isSelected {
-            return .accentColor // 選択された日付はアクセントカラー
+            return customAccentColor // 選択された日付はアクセントカラー
         } else if isToday {
-            return .blue.opacity(0.3) // 今日は薄い青
+            return customAccentColor.opacity(0.3) // 今日はアクセントカラーの薄い色
         } else if hasCompletedHabit {
-            return .green.opacity(0.4) // 達成済み習慣があれば薄い緑を濃く
+            return Color.green.opacity(0.4) // 達成済み習慣があれば薄い緑を濃く (機能色として残す)
         } else {
-            return Color(.systemGray5) // デフォルトはシステムグレー5
+            return customBaseColor // デフォルトはベースカラー
         }
     }
 
@@ -152,10 +167,9 @@ struct DayCell: View {
         if isSelected {
             return .white // 選択された日付は白文字
         } else if isToday || hasCompletedHabit {
-            return .primary // 今日か達成済みならプライマリカラー
+            return customTextColor // 今日か達成済みならカスタムテキストカラー
         } else {
-            return .secondary // それ以外はセカンダリカラー
+            return customTextColor.opacity(0.7) // それ以外はカスタムテキストカラーの薄い色
         }
     }
 }
-
