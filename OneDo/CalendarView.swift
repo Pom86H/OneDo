@@ -18,11 +18,12 @@ struct CalendarView: View {
                 ForEach(calendar.shortWeekdaySymbols, id: \.self) { weekdaySymbol in
                     Text(weekdaySymbol)
                         .font(.caption)
-                        .fontWeight(.bold)
+                        .fontWeight(.medium) // フォントの太さを調整
+                        .foregroundColor(.secondary) // 色をセカンダリカラーに
                         .frame(maxWidth: .infinity)
                 }
             }
-            .padding(.bottom, 5)
+            .padding(.bottom, 8) // パディングを調整
 
             // MARK: - 日付グリッド
             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 5) {
@@ -89,7 +90,7 @@ struct CalendarView: View {
 }
 
 // MARK: - DayCell: 各日のセルビュー
-
+// このビューはCalendarView.swift内に定義します。
 struct DayCell: View {
     let date: Date
     let habits: [Habit]
@@ -116,8 +117,8 @@ struct DayCell: View {
 
     var body: some View {
         Text("\(calendar.component(.day, from: date))") // 日付の数字を表示
-            .font(.caption)
-            .frame(width: 30, height: 30)
+            .font(.callout) // フォントサイズを調整
+            .frame(width: 38, height: 38) // セルのサイズを調整
             .background(backgroundColor)
             .foregroundColor(foregroundColor)
             .clipShape(Circle()) // 円形にクリップ
@@ -132,18 +133,22 @@ struct DayCell: View {
 
     // セルの背景色を計算
     private var backgroundColor: Color {
-        if isToday {
-            return .blue.opacity(0.2) // 今日は薄い青
+        if isSelected {
+            return .accentColor // 選択された日付はアクセントカラー
+        } else if isToday {
+            return .blue.opacity(0.3) // 今日は薄い青
         } else if hasCompletedHabit {
-            return .green.opacity(0.3) // 達成済み習慣があれば薄い緑
+            return .green.opacity(0.4) // 達成済み習慣があれば薄い緑を濃く
         } else {
-            return Color(.systemGray6) // デフォルトはシステムグレー
+            return Color(.systemGray5) // デフォルトはシステムグレー5
         }
     }
 
     // セルの文字色を計算
     private var foregroundColor: Color {
-        if isToday || hasCompletedHabit {
+        if isSelected {
+            return .white // 選択された日付は白文字
+        } else if isToday || hasCompletedHabit {
             return .primary // 今日か達成済みならプライマリカラー
         } else {
             return .secondary // それ以外はセカンダリカラー

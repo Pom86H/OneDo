@@ -1,157 +1,398 @@
 import SwiftUI
+import UserNotifications // UserNotificationsフレームワークをインポート
 
-struct CalendarView: View {
-    // 表示する月のDate
-    let month: Date
-    // 習慣のデータ（達成履歴を含む）
-    let habits: [Habit]
-    // 選択された日付のBinding (ContentViewと同期させるため)
-    @Binding var selectedDate: Date
+struct ContentView: View {
+    @State private var habits: [Habit] = []
+    @State private var showingAddHabitSheet = false
 
-    // カレンダーの表示に使うCalendarインスタンス
-    private let calendar = Calendar.current
+    private let HABITS_KEY = "oneDoHabits"
+    
+    // 現在表示している月の基準となる日付
+    @State private var currentMonth: Date = Date()
+    // 選択された日付 (カレンダービューとリストで共有)
+    @State private var selectedDate: Date = Date()
+
+    // MARK: - 編集中の習慣を保持するState変数とシート表示フラグ
+    @State private var selectedHabitForEdit: Habit? = nil
+    @State private var showingEditHabitSheet = false
+
+    // MARK: - グラフ表示用のState変数とシート表示フラグ
+    @State private var selectedHabitForGraph: Habit? = nil
+    @State private var showingProgressGraphSheet = false
+
+    // MARK: - ソートオプション用のState変数
+    @State private var selectedSortOption: SortOption = .nameAscending
+
+    enum SortOption: String, CaseIterable, Identifiable {
+        case nameAscending = "名前順 (昇順)"
+        case nameDescending = "名前順 (降順)"
+        case creationDateAscending = "作成日順 (古い順)"
+        case creationDateDescending = "作成日順 (新しい順)"
+
+        var id: String { self.rawValue }
+    }
+
 
     var body: some View {
-        VStack {
-            // MARK: - 曜日ヘッダー
-            HStack {
-                ForEach(calendar.shortWeekdaySymbols, id: \.self) { weekdaySymbol in
-                    Text(weekdaySymbol)
-                        .font(.caption)
-                        .fontWeight(.medium) // フォントの太さを調整
-                        .foregroundColor(.secondary) // 色をセカンダリカラーに
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .padding(.bottom, 8) // パディングを調整
+        NavigationView {
+            VStack(spacing: 0) { // 全体のVStackのスペーシングを0に
+                // MARK: - 月選択UI
+                HStack {
+                    Button(action: {
+                        currentMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
+                    }) {
+                        Image(systemName: "chevron.left.circle.fill")
+                            .font(.title2) // 少し小さく
+                            .foregroundColor(.accentColor)
+                    }
 
-            // MARK: - 日付グリッド
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 5) {
-                ForEach(daysInMonth(for: month), id: \.self) { date in
-                    // 月内の日付かどうかをチェック
-                    if calendar.isDate(date, equalTo: month, toGranularity: .month) {
-                        // 月内の日付
-                        DayCell(date: date, habits: habits, selectedDate: $selectedDate)
+                    Spacer()
+
+                    Text(currentMonth, formatter: monthFormatter)
+                        .font(.title) // 少し大きく
+                        .fontWeight(.bold)
+                        .onTapGesture {
+                            currentMonth = Date()
+                            selectedDate = Date()
+                        }
+
+                    Spacer()
+
+                    Button(action: {
+                        currentMonth = Calendar.current.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
+                    }) {
+                        Image(systemName: "chevron.right.circle.fill")
+                            .font(.title2) // 少し小さく
+                            .foregroundColor(.accentColor)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10) // 縦のパディングを増やす
+                .background(Color(.systemBackground)) // 背景色をシステム背景色に
+
+                // MARK: - CalendarViewを埋め込む
+                CalendarView(month: currentMonth, habits: habits, selectedDate: $selectedDate)
+                    .padding(.bottom, 10)
+
+                List {
+                    // Today's Habits セクション
+                    Section { // ヘッダーは別に定義するため、Sectionの引数を削除
+                        // フィルタリングとソートを適用した習慣リスト
+                        let processedHabitsIndices = habits.indices
+                            .filter { habits[$0].repeatSchedule.isDue(on: selectedDate) }
+                            .sorted { (index1, index2) -> Bool in
+                                let habit1 = habits[index1]
+                                let habit2 = habits[index2]
+                                switch selectedSortOption {
+                                case .nameAscending:
+                                    return habit1.name < habit2.name
+                                case .nameDescending:
+                                    return habit1.name > habit2.name
+                                case .creationDateAscending:
+                                    return habit1.id.uuidString < habit2.id.uuidString
+                                case .creationDateDescending:
+                                    return habit1.id.uuidString > habit2.id.uuidString
+                                }
+                            }
+
+                        if processedHabitsIndices.isEmpty {
+                            Text("今日の習慣はありません。\n新しい習慣を追加してみましょう！")
+                                .foregroundColor(.secondary)
+                                .multilineTextAlignment(.center)
+                                .padding(.vertical, 20) // 縦のパディングを追加
+                                .frame(maxWidth: .infinity) // 中央寄せのために幅を最大に
+                        } else {
+                            ForEach(processedHabitsIndices, id: \.self) { index in
+                                let habitBinding = $habits[index]
+                                let habit = habitBinding.wrappedValue
+
+                                HStack {
+                                    // 習慣名とストリーク表示をVStackで縦に並べる
+                                    VStack(alignment: .leading) {
+                                        Text(habit.name)
+                                            .font(.body) // フォントサイズを明示
+                                            .strikethrough(habit.isCompleted(on: selectedDate), color: .secondary)
+                                        Text("連続 \(habit.currentStreak) 日")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+
+                                    Spacer()
+
+                                    // MARK: - 進捗グラフ表示ボタン
+                                    if habit.goalType != .none {
+                                        Button(action: {
+                                            selectedHabitForGraph = habit
+                                            showingProgressGraphSheet = true
+                                        }) {
+                                            Image(systemName: "chart.bar.fill")
+                                                .font(.title2)
+                                                .foregroundColor(.blue)
+                                        }
+                                        .buttonStyle(BorderlessButtonStyle())
+                                    }
+
+                                    // MARK: - 右側のチェックマークボタン
+                                    Button(action: {
+                                        toggleCompletion(for: habit, date: selectedDate)
+                                    }) {
+                                        Image(systemName: habit.isCompleted(on: selectedDate) ? "checkmark.circle.fill" : "circle")
+                                            .font(.title2)
+                                            .foregroundColor(habit.isCompleted(on: selectedDate) ? .green : .gray)
+                                    }
+                                    .buttonStyle(BorderlessButtonStyle())
+                                }
+                                .padding(.vertical, 8) // 各行の縦パディングを調整
+                                .opacity(habit.isCompleted(on: selectedDate) ? 0.6 : 1.0)
+                                .swipeActions(edge: .trailing) {
+                                    Button(role: .destructive) {
+                                        if let originalIndex = habits.firstIndex(where: { $0.id == habit.id }) {
+                                            deleteHabit(at: IndexSet(integer: originalIndex))
+                                        }
+                                    } label: {
+                                        Label("削除", systemImage: "trash.fill")
+                                    }
+                                }
+                                .onTapGesture {
+                                    selectedHabitForEdit = habit
+                                    showingEditHabitSheet = true
+                                }
+                            }
+                            // MARK: - 並べ替え機能 (onMoveはフィルタリングされたリストでは複雑になるため、今回はソート機能で対応)
+                            // onMoveはフィルタリングされたリストのインデックスを元のリストのインデックスに変換
+                            .onMove { source, destination in
+                                var movedHabits: [Habit] = []
+                                for offset in source {
+                                    movedHabits.append(habits[processedHabitsIndices[offset]])
+                                }
+                                
+                                var newHabits = habits
+                                for offset in source.sorted().reversed() { // 逆順に削除しないとインデックスがずれる
+                                    newHabits.remove(at: processedHabitsIndices[offset])
+                                }
+                                
+                                let actualDestinationIndex: Int
+                                if destination < processedHabitsIndices.count {
+                                    actualDestinationIndex = processedHabitsIndices[destination]
+                                } else {
+                                    actualDestinationIndex = newHabits.count
+                                }
+                                
+                                newHabits.insert(contentsOf: movedHabits, at: actualDestinationIndex)
+                                
+                                habits = newHabits
+                                saveHabits()
+                            }
+                        }
+                    } header: { // Sectionのヘッダーを明示的に定義
+                        Text("今日の習慣")
+                            .font(.headline) // ヘッダーのフォントを調整
+                            .foregroundColor(.primary)
+                            .padding(.vertical, 5)
+                            .padding(.leading, -15) // リストのデフォルトパディングを打ち消す
+                    }
+                }
+                .navigationTitle("OneDo")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        // MARK: - ソートオプションのメニューをツールバーに追加
+                        Menu {
+                            Picker("並べ替え", selection: $selectedSortOption) {
+                                ForEach(SortOption.allCases, id: \.self) { option in
+                                    Text(option.rawValue).tag(option)
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down.circle.fill") // ソートアイコン
+                                .font(.title2)
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button(action: {
+                            showingAddHabitSheet = true
+                        }) {
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title2) // 少し小さく
+                                .foregroundColor(.accentColor)
+                        }
+                    }
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        EditButton()
+                            .foregroundColor(.accentColor) // Editボタンの色を合わせる
+                    }
+                }
+                .sheet(isPresented: $showingAddHabitSheet) {
+                    AddHabitView { newHabitName, repeatSchedule, reminderEnabled, reminderTime, reminderDaysOfWeek, goalType, targetValue, unit in
+                        let newHabit = Habit(
+                            name: newHabitName,
+                            isCompleted: false,
+                            repeatSchedule: repeatSchedule,
+                            reminderTime: reminderTime,
+                            reminderEnabled: reminderEnabled,
+                            reminderDaysOfWeek: reminderDaysOfWeek,
+                            goalType: goalType,
+                            targetValue: targetValue,
+                            unit: unit
+                        )
+                        habits.append(newHabit)
+                        saveHabits()
+                        scheduleNotifications()
+                    }
+                }
+                .sheet(item: $selectedHabitForEdit) { habitToEdit in
+                    if let index = habits.firstIndex(where: { $0.id == habitToEdit.id }) {
+                        EditHabitView(habit: $habits[index]) {
+                            saveHabits()
+                            scheduleNotifications()
+                        }
+                    }
+                }
+                .sheet(item: $selectedHabitForGraph) { habitForGraph in
+                    ProgressGraphView(habit: habitForGraph)
+                }
+                .onAppear(perform: {
+                    loadHabits()
+                    requestNotificationAuthorization()
+                })
+            }
+            .background(Color(.systemGroupedBackground).edgesIgnoringSafeArea(.all)) // 全体の背景色
+        }
+    }
+
+    // MARK: - DateFormatter for month display
+    private var monthFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy年M月"
+        return formatter
+    }
+
+    // MARK: - データ永続化メソッド
+
+    private func saveHabits() {
+        if let encoded = try? JSONEncoder().encode(habits) {
+            UserDefaults.standard.set(encoded, forKey: HABITS_KEY)
+            print("習慣データを保存しました: \(habits.count)件")
+        } else {
+            print("習慣データの保存に失敗しました。")
+        }
+    }
+
+    private func loadHabits() {
+        if let savedHabitsData = UserDefaults.standard.data(forKey: HABITS_KEY) {
+            if let decodedHabits = try? JSONDecoder().decode([Habit].self, from: savedHabitsData) {
+                habits = decodedHabits
+                print("習慣データを読み込みました: \(habits.count)件")
+            } else {
+                print("習慣データのデコードに失敗しました。")
+            }
+        } else {
+            print("保存された習慣データが見つかりませんでした。")
+        }
+    }
+
+    // MARK: - タスク削除メソッド
+    private func deleteHabit(at offsets: IndexSet) {
+        for index in offsets {
+            cancelNotification(for: habits[index])
+        }
+        habits.remove(atOffsets: offsets)
+        saveHabits()
+    }
+
+    // MARK: - 習慣達成状況の切り替えメソッド
+
+    private func toggleCompletion(for habit: Habit, date: Date) {
+        if let index = habits.firstIndex(where: { $0.id == habit.id }) {
+            var updatedHabit = habits[index]
+
+            if updatedHabit.isCompleted(on: date) {
+                updatedHabit.completionDates.removeAll { Calendar.current.isDate($0, inSameDayAs: date) }
+            } else {
+                updatedHabit.completionDates.append(date)
+            }
+            
+            habits[index] = updatedHabit
+            saveHabits()
+            print("\(habit.name) の達成状況が \(updatedHabit.isCompleted(on: date) ? "達成" : "未達成") に変更されました (日付: \(date))")
+            
+            scheduleNotifications()
+        }
+    }
+
+    // MARK: - 通知関連メソッド
+
+    private func requestNotificationAuthorization() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                print("通知許可が与えられました。")
+                scheduleNotifications()
+            } else if let error = error {
+                print("通知許可エラー: \(error.localizedDescription)")
+            } else {
+                print("通知許可が拒否されました。")
+            }
+        }
+    }
+
+    private func scheduleNotifications() {
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        print("既存の通知リクエストをすべて削除しました。")
+
+        for habit in habits {
+            guard habit.reminderEnabled, let reminderTime = habit.reminderTime else { continue }
+
+            let content = UNMutableNotificationContent()
+            content.title = "OneDo"
+            content.body = "\(habit.name) を行う時間です！"
+            content.sound = .default
+
+            let calendar = Calendar.current
+            var dateComponents = calendar.dateComponents([.hour, .minute], from: reminderTime)
+
+            if habit.repeatSchedule == .daily {
+                let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+                let request = UNNotificationRequest(identifier: habit.id.uuidString, content: content, trigger: trigger)
+                UNUserNotificationCenter.current().add(request) { error in
+                    if let error = error {
+                        print("通知のスケジュールに失敗しました: \(error.localizedDescription)")
                     } else {
-                        // 月外の日付（空白セル）
-                        Color.clear
-                            .frame(height: 40) // セルの高さを合わせる
+                        print("通知をスケジュールしました: \(habit.name) (毎日)")
+                    }
+                }
+            } else {
+                let weekdaysForReminder: [Int]
+                switch habit.repeatSchedule {
+                case .daily:
+                    weekdaysForReminder = []
+                case .weekdays:
+                    weekdaysForReminder = [2, 3, 4, 5, 6]
+                case .weekends:
+                    weekdaysForReminder = [1, 7]
+                case .weekly:
+                    weekdaysForReminder = Array(habit.reminderDaysOfWeek)
+                }
+
+                for weekday in weekdaysForReminder {
+                    dateComponents.weekday = weekday
+                    let trigger = UNCalendarNotificationTrigger(dateMatching: dateComponents, repeats: true)
+                    let identifier = "\(habit.id.uuidString)-\(weekday)"
+                    let request = UNNotificationRequest(identifier: identifier, content: content, trigger: trigger)
+                    UNUserNotificationCenter.current().add(request) { error in
+                        if let error = error {
+                            print("通知のスケジュールに失敗しました: \(error.localizedDescription)")
+                        } else {
+                            print("通知をスケジュールしました: \(habit.name) (曜日: \(weekday))")
+                        }
                     }
                 }
             }
         }
-        .padding(.horizontal)
     }
-
-    // MARK: - ヘルパーメソッド
-
-    // 指定された月のすべての日（前月・翌月の日を含む）を生成
-    private func daysInMonth(for date: Date) -> [Date] {
-        guard let monthInterval = calendar.dateInterval(of: .month, for: date) else { return [] }
-        let firstDayOfMonth = monthInterval.start
-        let lastDayOfMonth = monthInterval.end // 月の最終日も必要
-
-        // 月の最初の曜日を取得 (例: 月曜日が週の始まりなら、日曜日の分だけ空白が必要)
-        let firstWeekday = calendar.component(.weekday, from: firstDayOfMonth)
-        // 週の始まりが月曜の場合、日曜日は7、月曜日は1として計算する
-        let offsetDays = (firstWeekday - calendar.firstWeekday + 7) % 7
-
-        var dates: [Date] = []
-        // 前月の空白日を追加
-        for i in 0..<offsetDays {
-            if let prevDate = calendar.date(byAdding: .day, value: -offsetDays + i, to: firstDayOfMonth) {
-                dates.append(prevDate)
-            }
-        }
-
-        // 今月の日を追加 (月の最初の日から最終日までをループ)
-        var currentDate = firstDayOfMonth
-        while currentDate <= lastDayOfMonth { // 最終日を含むように条件を修正
-            dates.append(currentDate)
-            guard let nextDay = calendar.date(byAdding: .day, value: 1, to: currentDate) else { break }
-            currentDate = nextDay
-        }
-        
-        // 翌月の空白日を追加 (合計42日になるまで)
-        let totalCells = 42 // 6週間 x 7日 = 42日
-        let remainingDays = totalCells - dates.count
-        if remainingDays > 0 {
-            if let lastDateInGrid = dates.last {
-                for i in 1...remainingDays {
-                    if let nextDate = calendar.date(byAdding: .day, value: i, to: lastDateInGrid) {
-                        dates.append(nextDate)
-                    }
-                }
-            }
-        }
-
-        return dates
-    }
-}
-
-// MARK: - DayCell: 各日のセルビュー
-// このビューはCalendarView.swift内に定義します。
-struct DayCell: View {
-    let date: Date
-    let habits: [Habit]
-    @Binding var selectedDate: Date
-
-    private let calendar = Calendar.current
-
-    // その日が今日かどうか
-    private var isToday: Bool {
-        calendar.isDateInToday(date)
-    }
-
-    // その日が選択された日付かどうか
-    private var isSelected: Bool {
-        calendar.isDate(date, inSameDayAs: selectedDate)
-    }
-
-    // その日に達成された習慣があるかどうか
-    private var hasCompletedHabit: Bool {
-        habits.contains { habit in
-            habit.repeatSchedule.isDue(on: date) && habit.isCompleted(on: date)
-        }
-    }
-
-    var body: some View {
-        Text("\(calendar.component(.day, from: date))") // 日付の数字を表示
-            .font(.callout) // フォントサイズを調整
-            .frame(width: 38, height: 38) // セルのサイズを調整
-            .background(backgroundColor)
-            .foregroundColor(foregroundColor)
-            .clipShape(Circle()) // 円形にクリップ
-            .overlay(
-                Circle()
-                    .stroke(isSelected ? Color.accentColor : Color.clear, lineWidth: 2) // 選択された日付に枠線
-            )
-            .onTapGesture {
-                selectedDate = date // タップされた日付を選択
-            }
-    }
-
-    // セルの背景色を計算
-    private var backgroundColor: Color {
-        if isSelected {
-            return .accentColor // 選択された日付はアクセントカラー
-        } else if isToday {
-            return .blue.opacity(0.3) // 今日は薄い青
-        } else if hasCompletedHabit {
-            return .green.opacity(0.4) // 達成済み習慣があれば薄い緑を濃く
-        } else {
-            return Color(.systemGray5) // デフォルトはシステムグレー5
-        }
-    }
-
-    // セルの文字色を計算
-    private var foregroundColor: Color {
-        if isSelected {
-            return .white // 選択された日付は白文字
-        } else if isToday || hasCompletedHabit {
-            return .primary // 今日か達成済みならプライマリカラー
-        } else {
-            return .secondary // それ以外はセカンダリカラー
-        }
+    
+    private func cancelNotification(for habit: Habit) {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [habit.id.uuidString])
+        print("通知をキャンセルしました: \(habit.name)")
     }
 }
