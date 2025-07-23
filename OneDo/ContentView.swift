@@ -8,7 +8,32 @@ struct ContentView: View {
     private let HABITS_KEY = "oneDoHabits"
     
     // 現在表示している月の基準となる日付
-    @State private var currentMonth: Date = Date()
+    // 初期化時に確実に現在の月の初日を設定
+    @State private var currentMonth: Date = {
+        let calendar = Calendar.autoupdatingCurrent // autoupdatingCurrentを使用
+        let now = Date()
+        
+        // 現在の年と月を取得
+        let year = calendar.component(.year, from: now)
+        let month = calendar.component(.month, from: now)
+        
+        // その月の1日午前0時0分0秒のDateComponentsを作成
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = 1 // 1日に設定
+        components.hour = 0 // 0時に設定
+        components.minute = 0 // 0分に設定
+        components.second = 0 // 0秒に設定
+        
+        // DateComponentsからDateオブジェクトを直接作成し、その日の始まりに設定
+        // これにより、タイムゾーンを考慮したその月の1日午前0時0分0秒が生成されるはず
+        if let date = calendar.date(from: components) {
+            return calendar.startOfDay(for: date) // その月の1日午前0時0分0秒に設定
+        }
+        return now // フォールバック
+    }()
+    
     // 選択された日付 (カレンダービューとリストで共有)
     @State private var selectedDate: Date = Date()
 
@@ -67,13 +92,37 @@ struct ContentView: View {
 
                     Spacer()
 
-                    Text(currentMonth, formatter: monthFormatter)
-                        .font(.title)
-                        .fontWeight(.bold)
+                    // MARK: - ここを修正: DateFormatterで文字列に変換してからTextに渡す
+                    Text(monthFormatter.string(from: currentMonth))
+                        .font(.system(size: 24, weight: .bold)) // 具体的なフォントサイズと太さを指定 (例: 24)
                         .foregroundColor(customTextColor) // カスタムカラーを適用
+                        .frame(maxWidth: .infinity) // 利用可能な最大幅を使用
+                        .lineLimit(1) // 複数行にならないように制限
+                        .minimumScaleFactor(0.7) // 必要に応じて縮小 (例: 0.7まで縮小を許可)
                         .onTapGesture {
-                            currentMonth = Date()
-                            selectedDate = Date()
+                            // タップで現在の日付に戻る際も、月の初日午前0時に設定
+                            let calendar = Calendar.autoupdatingCurrent // autoupdatingCurrentを使用
+                            let now = Date()
+                            
+                            // 現在の年と月を取得
+                            let year = calendar.component(.year, from: now)
+                            let month = calendar.component(.month, from: now)
+                            
+                            // その月の1日午前0時0分0秒のDateComponentsを作成
+                            var components = DateComponents()
+                            components.year = year
+                            components.month = month
+                            components.day = 1
+                            components.hour = 0
+                            components.minute = 0
+                            components.second = 0
+                            
+                            if let startOfMonth = calendar.date(from: components) {
+                                currentMonth = calendar.startOfDay(for: startOfMonth) // その月の1日午前0時0分0秒に設定
+                            } else {
+                                currentMonth = now
+                            }
+                            selectedDate = now
                         }
 
                     Spacer()
@@ -278,6 +327,35 @@ struct ContentView: View {
                 .onAppear(perform: {
                     loadHabits()
                     requestNotificationAuthorization()
+                    // MARK: - currentMonthとselectedDateを現在の月の初日にリセット（念のため）
+                    let calendar = Calendar.autoupdatingCurrent // autoupdatingCurrentを使用
+                    let now = Date()
+                    print("DEBUG: Current Date (now): \(now)") // Debug print
+                    
+                    // 現在の年と月を取得
+                    let year = calendar.component(.year, from: now)
+                    let month = calendar.component(.month, from: now)
+                    
+                    // その月の1日午前0時0分0秒のDateComponentsを作成
+                    var components = DateComponents()
+                    components.year = year
+                    components.month = month
+                    components.day = 1 // 1日に設定
+                    components.hour = 0 // 0時に設定
+                    components.minute = 0 // 0分に設定
+                    components.second = 0 // 0秒に設定
+                    
+                    // DateComponentsからDateオブジェクトを直接作成
+                    if let startOfMonth = calendar.date(from: components) {
+                        currentMonth = startOfMonth // その月の1日午前0時0分0秒に設定
+                        print("DEBUG: Start of Month: \(currentMonth)") // Debug print
+                    } else {
+                        currentMonth = now
+                        print("DEBUG: Failed to get start of month. Using now for currentMonth.") // Debug print
+                    }
+                    selectedDate = now // selectedDateは今日のまま
+                    print("DEBUG: currentMonth after onAppear: \(currentMonth)") // Debug print
+                    print("DEBUG: formatted currentMonth: \(monthFormatter.string(from: currentMonth))") // Debug print
                 })
             }
             .background(customBaseColor.edgesIgnoringSafeArea(.all)) // カスタムカラーを適用
@@ -287,7 +365,11 @@ struct ContentView: View {
     // MARK: - DateFormatter for month display
     private var monthFormatter: DateFormatter {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy年M月"
+        // ロケール、カレンダー、タイムゾーンを明示的に設定し、安定性を高める
+        formatter.locale = Locale(identifier: "ja_JP") // 日本語ロケールを明示的に指定
+        formatter.calendar = Calendar(identifier: .gregorian) // グレゴリオ暦を明示的に指定
+        formatter.timeZone = TimeZone.current // 現在のタイムゾーンを設定
+        formatter.dateFormat = "yyyy年M月" // フォーマットを最後に設定
         return formatter
     }
 
@@ -460,8 +542,7 @@ struct HabitRowView: View {
             }
 
             Button(action: {
-                // MARK: - 引数ラベルを削除して修正
-                toggleCompletion(habit, selectedDate) // 修正箇所
+                toggleCompletion(habit, selectedDate)
             }) {
                 Image(systemName: habit.isCompleted(on: selectedDate) ? "checkmark.circle.fill" : "circle")
                     .font(.title2)

@@ -15,9 +15,9 @@ struct CalendarView: View {
     private let japaneseWeekdaySymbols = ["日", "月", "火", "水", "木", "金", "土"]
 
     // MARK: - カスタムカラーの定義 (ContentViewと合わせておく)
-    let customAccentColor = Color(red: 0xE4/255.0, green: 0xC1/255.0, blue: 0xB5/255.0)
-    let customBaseColor = Color(red: 0xEA/255.0, green: 0xE6/255.0, blue: 0xE1/255.0)
-    let customTextColor = Color(red: 0x54/255.0, green: 0x4C/255.0, blue: 0x40/255.0)
+    let customAccentColor = Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0) // #859A93
+    let customBaseColor = Color(red: 0xFF/255.0, green: 0xFC/255.0, blue: 0xF7/255.0) // #FFFCF7
+    let customTextColor = Color(red: 0x54/255.0, green: 0x47/255.0, blue: 0x39/255.0) // #544739
 
 
     var body: some View {
