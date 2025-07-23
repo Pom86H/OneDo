@@ -14,7 +14,11 @@ struct EditHabitView: View {
     // MARK: - 目標設定の内部状態を追加
     @State private var selectedGoalType: Habit.GoalType
     @State private var targetValueInput: String
-    @State private var unitInput: String 
+    @State private var unitInput: String
+
+    // MARK: - カスタムアイコンとカラー関連のState変数を追加
+    @State private var selectedIconName: String?
+    @State private var selectedColor: Color
 
     // 変更が保存された際に呼び出すクロージャ
     var onSave: () -> Void
@@ -31,11 +35,25 @@ struct EditHabitView: View {
 
         // MARK: - 目標設定関連のState初期化
         _selectedGoalType = State(initialValue: habit.wrappedValue.goalType)
-        // ここを修正: String(describing:) を使用して明示的に変換
         _targetValueInput = State(initialValue: habit.wrappedValue.targetValue.map { String(describing: $0) } ?? "")
-        // ここを修正: unitがnilの場合に空文字列を返すように
         _unitInput = State(initialValue: habit.wrappedValue.unit ?? "")
+
+        // MARK: - アイコンとカラー関連のState初期化
+        _selectedIconName = State(initialValue: habit.wrappedValue.iconName ?? "circle.fill") // デフォルトアイコンを設定
+        _selectedColor = State(initialValue: habit.wrappedValue.customColorHex?.toColor() ?? Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0)) // デフォルトカラーを設定
     }
+
+    // SF Symbolsのアイコンリスト（約7種類に絞り込みました）
+    let sfSymbols: [String] = [
+        "heart.fill",       // 健康、愛情
+        "book.closed.fill", // 学習、読書
+        "dumbbell.fill",    // 運動、筋トレ
+        "cup.and.saucer.fill", // 休憩、飲食
+        "leaf.fill",        // 自然、環境
+        "lightbulb.fill",   // アイデア、思考
+        "figure.walk"       // 活動、散歩
+    ]
+
 
     var body: some View {
         NavigationView {
@@ -50,6 +68,39 @@ struct EditHabitView: View {
                     }
                 }
 
+                Section("アイコンとカラー") {
+                    // アイコン選択
+                    VStack(alignment: .leading) {
+                        Text("アイコンを選択")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 8), spacing: 10) {
+                            ForEach(sfSymbols, id: \.self) { iconName in
+                                // MARK: - ButtonをZStack + onTapGestureに置き換え
+                                ZStack {
+                                    Image(systemName: iconName)
+                                        .font(.title2)
+                                        .foregroundColor(selectedIconName == iconName ? .white : .primary)
+                                        .frame(width: 40, height: 40)
+                                        .background(selectedIconName == iconName ? selectedColor : Color(.systemGray5))
+                                        .clipShape(Circle())
+                                }
+                                .contentShape(Circle()) // ZStack全体をタップ可能な円形にする
+                                .onTapGesture {
+                                    selectedIconName = iconName
+                                    // MARK: - デバッグ用: アイコンがタップされたか確認
+                                    print("DEBUG: EditHabitView - Icon tapped: \(iconName), selectedIconName is now: \(String(describing: selectedIconName))")
+                                }
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
+
+                    // カラーピッカー
+                    ColorPicker("カラーを選択", selection: $selectedColor)
+                        .padding(.vertical, 5)
+                }
+
                 Section("リマインダー") {
                     Toggle("リマインダーを有効にする", isOn: $reminderEnabled) // 内部State
 
@@ -62,6 +113,7 @@ struct EditHabitView: View {
                                 Text("曜日を選択")
                                 HStack {
                                     ForEach(1...7, id: \.self) { weekday in
+                                        // DayOfWeekButtonはHabit.swiftに移動済み
                                         DayOfWeekButton(weekday: weekday, isSelected: reminderDaysOfWeek.contains(weekday)) { selectedWeekday in
                                             if reminderDaysOfWeek.contains(selectedWeekday) {
                                                 reminderDaysOfWeek.remove(selectedWeekday)
@@ -112,6 +164,10 @@ struct EditHabitView: View {
                         habit.targetValue = Double(targetValueInput) // StringをDouble?に変換
                         habit.unit = unitInput.isEmpty ? nil : unitInput // 空文字列ならnil
 
+                        // MARK: - アイコンとカラーの値をBindingに反映
+                        habit.iconName = selectedIconName
+                        habit.customColorHex = selectedColor.toHex() // ColorをHex文字列に変換 (toHex()はHabit.swiftに移動済み)
+
                         onSave() // 保存アクションを呼び出し
                         dismiss()
                     }
@@ -120,30 +176,3 @@ struct EditHabitView: View {
         }
     }
 }
-
-// DayOfWeekButtonはAddHabitView.swiftに定義済みなので、ここでは定義しません。
-// もしエラーが出る場合は、DayOfWeekButtonの定義をHabit.swiftの下か、
-// 独立したファイルに移動することを検討してください。
-
-// #Preview {
-//     struct EditHabitViewPreview: View {
-//         @State private var previewHabit = Habit(
-//             name: "毎日水を飲む",
-//             isCompleted: false,
-//             repeatSchedule: .daily,
-//             reminderTime: Calendar.current.date(bySettingHour: 8, minute: 30, second: 0, of: Date()),
-//             reminderEnabled: true,
-//             reminderDaysOfWeek: [],
-//             goalType: .count, // プレビュー用に目標設定
-//             targetValue: 10,
-//             unit: "回"
-//         )
-//
-//         var body: some View {
-//             EditHabitView(habit: $previewHabit, onSave: {
-//                 print("プレビュー: 習慣が保存されました: \(previewHabit.name)")
-//             })
-//         }
-//     }
-//     return EditHabitViewPreview()
-// }

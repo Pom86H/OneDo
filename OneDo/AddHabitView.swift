@@ -14,10 +14,26 @@ struct AddHabitView: View {
     @State private var targetValueInput: String = "" // 目標値の入力用 (Stringで受け取る)
     @State private var unitInput: String = "" // 単位の入力用
 
+    // MARK: - カスタムアイコンとカラー関連のState変数を追加
+    @State private var selectedIconName: String? = "circle.fill" // デフォルトアイコン
+    @State private var selectedColor: Color = Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0) // デフォルトカラー
+
     @Environment(\.dismiss) var dismiss
 
-    // クロージャの引数にリマインダーと目標設定関連の情報を追加
-    var onAddHabit: (String, Habit.RepeatSchedule, Bool, Date?, Set<Int>, Habit.GoalType, Double?, String?) -> Void
+    // クロージャの引数にリマインダー、目標設定、アイコン、カラー関連の情報を追加
+    var onAddHabit: (String, Habit.RepeatSchedule, Bool, Date?, Set<Int>, Habit.GoalType, Double?, String?, String?, String?) -> Void
+
+    // SF Symbolsのアイコンリスト（例）
+    let sfSymbols: [String] = [
+        "heart.fill",       // 健康、愛情
+        "book.closed.fill", // 学習、読書
+        "dumbbell.fill",    // 運動、筋トレ
+        "cup.and.saucer.fill", // 休憩、飲食
+        "leaf.fill",        // 自然、環境
+        "lightbulb.fill",   // アイデア、思考
+        "figure.walk"       // 活動、散歩
+    ]
+
 
     var body: some View {
         NavigationView {
@@ -32,6 +48,39 @@ struct AddHabitView: View {
                     }
                 }
 
+                Section("アイコンとカラー") {
+                    // アイコン選択
+                    VStack(alignment: .leading) {
+                        Text("アイコンを選択")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 8), spacing: 10) {
+                            ForEach(sfSymbols, id: \.self) { iconName in
+                                // MARK: - ButtonをZStack + onTapGestureに置き換え
+                                ZStack {
+                                    Image(systemName: iconName)
+                                        .font(.title2)
+                                        .foregroundColor(selectedIconName == iconName ? .white : .primary)
+                                        .frame(width: 40, height: 40)
+                                        .background(selectedIconName == iconName ? selectedColor : Color(.systemGray5))
+                                        .clipShape(Circle())
+                                }
+                                .contentShape(Circle()) // ZStack全体をタップ可能な円形にする
+                                .onTapGesture {
+                                    selectedIconName = iconName
+                                    // MARK: - デバッグ用: アイコンがタップされたか確認
+                                    print("DEBUG: AddHabitView - Icon tapped: \(iconName), selectedIconName is now: \(String(describing: selectedIconName))")
+                                }
+                            }
+                        }
+                        .padding(.vertical, 5)
+                    }
+
+                    // カラーピッカー
+                    ColorPicker("カラーを選択", selection: $selectedColor)
+                        .padding(.vertical, 5)
+                }
+
                 Section("リマインダー") {
                     Toggle("リマインダーを有効にする", isOn: $reminderEnabled)
 
@@ -44,6 +93,7 @@ struct AddHabitView: View {
                                 Text("曜日を選択")
                                 HStack {
                                     ForEach(1...7, id: \.self) { weekday in // 日曜(1)から土曜(7)
+                                        // DayOfWeekButtonはHabit.swiftに移動済み
                                         DayOfWeekButton(weekday: weekday, isSelected: reminderDaysOfWeek.contains(weekday)) { selectedWeekday in
                                             if reminderDaysOfWeek.contains(selectedWeekday) {
                                                 reminderDaysOfWeek.remove(selectedWeekday)
@@ -60,7 +110,7 @@ struct AddHabitView: View {
 
                 // MARK: - 目標設定セクションを追加
                 Section("目標設定") {
-                    Picker("目標タイプ", selection: $selectedGoalType) {
+                    Picker("目標タイプ", selection: $selectedGoalType) { // デフォルトは目標なし
                         ForEach(Habit.GoalType.allCases, id: \.self) { type in
                             Text(type.rawValue).tag(type)
                         }
@@ -95,15 +145,20 @@ struct AddHabitView: View {
                             let finalTargetValue = Double(targetValueInput)
                             let finalUnit = unitInput.isEmpty ? nil : unitInput
 
+                            // ColorをHex文字列に変換 (toHex()はHabit.swiftに移動済み)
+                            let hexColor = selectedColor.toHex()
+
                             onAddHabit(
                                 newHabitName,
                                 selectedRepeatSchedule,
                                 reminderEnabled,
                                 finalReminderTime,
                                 finalReminderDaysOfWeek,
-                                selectedGoalType, // 新しい引数
-                                finalTargetValue, // 新しい引数
-                                finalUnit // 新しい引数
+                                selectedGoalType,
+                                finalTargetValue,
+                                finalUnit,
+                                selectedIconName, // 新しい引数
+                                hexColor // 新しい引数
                             )
                             dismiss()
                         }
@@ -114,37 +169,3 @@ struct AddHabitView: View {
         }
     }
 }
-
-// MARK: - DayOfWeekButton: 曜日選択ボタンのカスタムビュー
-// このビューはAddHabitView.swiftに定義済みですが、他のビューでも使用するため、
-// Habit.swiftの下か、独立したファイルに移動することを推奨します。
-// 今回はAddHabitView.swiftにそのまま残します。
-struct DayOfWeekButton: View {
-    let weekday: Int // 1 (日曜) ... 7 (土曜)
-    let isSelected: Bool
-    let action: (Int) -> Void
-
-    private var daySymbol: String {
-        let calendar = Calendar.current
-        return calendar.veryShortWeekdaySymbols[weekday - 1] // 日曜が0番目
-    }
-
-    var body: some View {
-        Button(action: {
-            action(weekday)
-        }) {
-            Text(daySymbol)
-                .font(.caption)
-                .frame(width: 28, height: 28)
-                .background(isSelected ? Color.accentColor : Color(.systemGray5))
-                .foregroundColor(isSelected ? .white : .primary)
-                .clipShape(Circle())
-        }
-    }
-}
-
-// #Preview {
-//     AddHabitView(onAddHabit: { name, schedule, enabled, time, days, goalType, targetValue, unit in
-//         print("プレビュー: 新しい習慣: \(name), 繰り返し: \(schedule.rawValue), リマインダー有効: \(enabled), 時間: \(String(describing: time)), 曜日: \(days), 目標タイプ: \(goalType.rawValue), 目標値: \(String(describing: targetValue)), 単位: \(String(describing: unit))")
-//     })
-// }

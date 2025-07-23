@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI // Colorを扱うために必要になる可能性があるのでインポート
 
 // 習慣タスクのデータを定義する構造体
 struct Habit: Identifiable, Codable {
@@ -19,6 +20,10 @@ struct Habit: Identifiable, Codable {
     var targetValue: Double? // 目標値 (例: 10回、30分)
     var unit: String? // 単位 (例: "回", "分")
 
+    // MARK: - カスタムアイコンとカラーのプロパティを追加
+    var iconName: String? // SF Symbolsの名前 (例: "heart.fill")
+    var customColorHex: String? // カラーの16進数コード (例: "#FF0000")
+
 
     // イニシャライザ。idのデフォルト値はUUID()にする
     init(id: UUID = UUID(), name: String, isCompleted: Bool,
@@ -29,7 +34,9 @@ struct Habit: Identifiable, Codable {
          reminderDaysOfWeek: Set<Int> = [], // デフォルトは空のセット
          goalType: GoalType = .none, // デフォルトは目標なし
          targetValue: Double? = nil, // デフォルトはnil
-         unit: String? = nil // デフォルトはnil
+         unit: String? = nil, // デフォルトはnil
+         iconName: String? = nil, // 新しい引数: デフォルトはnil
+         customColorHex: String? = nil // 新しい引数: デフォルトはnil
     ) {
         self.id = id
         self.name = name
@@ -42,6 +49,8 @@ struct Habit: Identifiable, Codable {
         self.goalType = goalType
         self.targetValue = targetValue
         self.unit = unit
+        self.iconName = iconName
+        self.customColorHex = customColorHex
     }
 
     // 特定の日付で達成されたかどうかをチェックするヘルパープロパティ
@@ -127,5 +136,69 @@ extension Habit.RepeatSchedule {
 extension Calendar {
     func isDate(_ date: Date, containedIn dates: [Date]) -> Bool {
         dates.contains { self.isDate($0, inSameDayAs: date) }
+    }
+}
+
+// MARK: - Stringの拡張：HexカラーコードからColorを生成するヘルパー
+extension String {
+    func toColor() -> Color? {
+        var hexSanitized = self.trimmingCharacters(in: .whitespacesAndNewlines)
+        hexSanitized = hexSanitized.replacingOccurrences(of: "#", with: "")
+
+        var rgb: UInt64 = 0
+        Scanner(string: hexSanitized).scanHexInt64(&rgb)
+
+        let red = Double((rgb & 0xFF0000) >> 16) / 255.0
+        let green = Double((rgb & 0x00FF00) >> 8) / 255.0
+        let blue = Double(rgb & 0x0000FF) / 255.0
+
+        return Color(red: red, green: green, blue: blue)
+    }
+}
+
+// MARK: - Colorの拡張：ColorをHex文字列に変換するヘルパー (AddHabitViewから移動)
+extension Color {
+    func toHex() -> String? {
+        guard let components = UIColor(self).cgColor.components, components.count >= 3 else {
+            return nil
+        }
+        
+        let r = Float(components[0])
+        let g = Float(components[1])
+        let b = Float(components[2])
+        let a = components.count >= 4 ? Float(components[3]) : 1.0 // Alpha
+        
+        // Convert to 0-255 range
+        let r255 = Int(r * 255.0)
+        let g255 = Int(g * 255.0)
+        let b255 = Int(b * 255.0)
+        
+        // Format as hex string
+        return String(format: "#%02X%02X%02X", r255, g255, b255)
+    }
+}
+
+// MARK: - DayOfWeekButton: 曜日選択ボタンのカスタムビュー (AddHabitViewから移動)
+struct DayOfWeekButton: View {
+    let weekday: Int // 1 (日曜) ... 7 (土曜)
+    let isSelected: Bool
+    let action: (Int) -> Void
+
+    private var daySymbol: String {
+        let calendar = Calendar.current
+        return calendar.veryShortWeekdaySymbols[weekday - 1] // 日曜が0番目
+    }
+
+    var body: some View {
+        Button(action: {
+            action(weekday)
+        }) {
+            Text(daySymbol)
+                .font(.caption)
+                .frame(width: 28, height: 28)
+                .background(isSelected ? Color.accentColor : Color(.systemGray5))
+                .foregroundColor(isSelected ? .white : .primary)
+                .clipShape(Circle())
+        }
     }
 }

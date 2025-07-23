@@ -92,7 +92,7 @@ struct ContentView: View {
 
                     Spacer()
 
-                    // MARK: - ここを修正: DateFormatterで文字列に変換してからTextに渡す
+                    // MARK: - DateFormatterで文字列に変換してからTextに渡す
                     Text(monthFormatter.string(from: currentMonth))
                         .font(.system(size: 24, weight: .bold)) // 具体的なフォントサイズと太さを指定 (例: 24)
                         .foregroundColor(customTextColor) // カスタムカラーを適用
@@ -296,7 +296,7 @@ struct ContentView: View {
                     }
                 }
                 .sheet(isPresented: $showingAddHabitSheet) {
-                    AddHabitView { newHabitName, repeatSchedule, reminderEnabled, reminderTime, reminderDaysOfWeek, goalType, targetValue, unit in
+                    AddHabitView { newHabitName, repeatSchedule, reminderEnabled, reminderTime, reminderDaysOfWeek, goalType, targetValue, unit, iconName, customColorHex in
                         let newHabit = Habit(
                             name: newHabitName,
                             isCompleted: false,
@@ -306,7 +306,9 @@ struct ContentView: View {
                             reminderDaysOfWeek: reminderDaysOfWeek,
                             goalType: goalType,
                             targetValue: targetValue,
-                            unit: unit
+                            unit: unit,
+                            iconName: iconName, // ここでアイコン名を渡す
+                            customColorHex: customColorHex // ここでカスタムカラーHexを渡す
                         )
                         habits.append(newHabit)
                         saveHabits()
@@ -517,6 +519,26 @@ struct HabitRowView: View {
 
     var body: some View {
         HStack {
+            // MARK: - カスタムアイコンとカラーを表示
+            if let iconName = habit.iconName, let colorHex = habit.customColorHex, let customColor = colorHex.toColor() {
+                Image(systemName: iconName)
+                    .font(.title2)
+                    .foregroundColor(.white) // アイコンの色は白に固定
+                    .frame(width: 30, height: 30)
+                    .background(customColor)
+                    .clipShape(Circle())
+                    .padding(.trailing, 5)
+            } else {
+                // デフォルトのアイコンとカラー
+                Image(systemName: "checkmark.circle.fill") // デフォルトアイコン
+                    .font(.title2)
+                    .foregroundColor(Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0)) // デフォルトカラー
+                    .frame(width: 30, height: 30)
+                    .background(Color(.systemGray5))
+                    .clipShape(Circle())
+                    .padding(.trailing, 5)
+            }
+
             VStack(alignment: .leading) {
                 Text(habit.name)
                     .font(.body)
