@@ -1,5 +1,5 @@
 import SwiftUI
-import UserNotifications // UserNotificationsフレームワークをインポート
+import UserNotifications // Import UserNotifications framework
 
 struct ContentView: View {
     @State private var habits: [Habit] = []
@@ -7,49 +7,48 @@ struct ContentView: View {
 
     private let HABITS_KEY = "oneDoHabits"
     
-    // MARK: - システムのカラーテーマを取得
+    // MARK: - Get system color scheme
     @Environment(\.colorScheme) var colorScheme
 
-    // 現在表示している月の基準となる日付
-    // 初期化時に確実に現在の月の初日を設定
+    // Current month base date for calendar display
+    // Ensure it's set to the first day of the current month upon initialization
     @State private var currentMonth: Date = {
-        let calendar = Calendar.autoupdatingCurrent // autoupdatingCurrentを使用
+        let calendar = Calendar.autoupdatingCurrent // Use autoupdatingCurrent
         let now = Date()
         
-        // 現在の年と月を取得
+        // Get current year and month
         let year = calendar.component(.year, from: now)
-        // MARK: - ここを修正: .monthの後にカンマを追加
         let month = calendar.component(.month, from: now)
         
-        // その月の1日午前0時0分0秒のDateComponentsを作成
+        // Create DateComponents for the 1st day of the month at 00:00:00
         var components = DateComponents()
         components.year = year
         components.month = month
-        components.day = 1 // 1日に設定
-        components.hour = 0 // 0時に設定
-        components.minute = 0 // 0分に設定
-        components.second = 0 // 0秒に設定
+        components.day = 1 // Set to 1st
+        components.hour = 0 // Set to 0 hour
+        components.minute = 0 // Set to 0 minute
+        components.second = 0 // Set to 0 second
         
-        // DateComponentsからDateオブジェクトを直接作成し、その日の始まりに設定
-        // これにより、タイムゾーンを考慮したその月の1日午前0時0分0秒が生成されるはず
+        // Create a Date object directly from DateComponents and set it to the start of that day
+        // This should generate the 1st day of the month at 00:00:00 considering the timezone
         if let date = calendar.date(from: components) {
-            return calendar.startOfDay(for: date) // その月の1日午前0時0分0秒に設定
+            return calendar.startOfDay(for: date) // Set to 1st day of the month at 00:00:00
         }
-        return now // フォールバック
+        return now // Fallback
     }()
     
-    // 選択された日付 (カレンダービューとリストで共有)
+    // Selected date (shared between calendar view and list)
     @State private var selectedDate: Date = Date()
 
-    // MARK: - 編集中の習慣を保持するState変数とシート表示フラグ
+    // MARK: - State variables for editing habit and sheet display flag
     @State private var selectedHabitForEdit: Habit? = nil
     @State private var showingEditHabitSheet = false
 
-    // MARK: - グラフ表示用のState変数とシート表示フラグ
+    // MARK: - State variables for graph display and sheet display flag
     @State private var selectedHabitForGraph: Habit? = nil
     @State private var showingProgressGraphSheet = false
 
-    // MARK: - ソートオプション用のState変数
+    // MARK: - State variable for sort options
     @State private var selectedSortOption: SortOption = .nameAscending
 
     enum SortOption: String, CaseIterable, Identifiable {
@@ -61,7 +60,7 @@ struct ContentView: View {
         var id: String { self.rawValue }
     }
 
-    // MARK: - フィルタリングオプション用のState変数
+    // MARK: - State variable for filtering options
     @State private var selectedFilterOption: FilterOption = .all
 
     enum FilterOption: String, CaseIterable, Identifiable {
@@ -72,53 +71,56 @@ struct ContentView: View {
         var id: String { self.rawValue }
     }
 
-    // MARK: - Listの編集モードを制御するState変数
+    // MARK: - State variable to control List edit mode
     @Environment(\.editMode) var editMode
 
-    // MARK: - カスタムカラーの定義 (ダークモード対応)
+    // MARK: - Custom color definitions (adjusted for dark mode compatibility)
     var customAccentColor: Color {
-        colorScheme == .dark ? Color(red: 0x9A/255.0, green: 0xB0/255.0, blue: 0xA9/255.0) : Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0) // #9AB0A9 (Dark) : #859A93 (Light)
+        // Light: #4A90E2, Dark: #7FB8F7
+        colorScheme == .dark ? Color(red: 0x7F/255.0, green: 0xB8/255.0, blue: 0xF7/255.0) : Color(red: 0x4A/255.0, green: 0x90/255.0, blue: 0xE2/255.0)
     }
     var customBaseColor: Color {
-        colorScheme == .dark ? Color(red: 0x2A/255.0, green: 0x2A/255.0, blue: 0x2A/255.0) : Color(red: 0xFF/255.0, green: 0xFC/255.0, blue: 0xF7/255.0) // #2A2A2A (Dark) : #FFFCF7 (Light)
+        // Light: #FFFFFF, Dark: #121212
+        colorScheme == .dark ? Color(red: 0x12/255.0, green: 0x12/255.0, blue: 0x12/255.0) : Color(red: 0xFF/255.0, green: 0xFF/255.0, blue: 0xFF/255.0)
     }
     var customTextColor: Color {
-        colorScheme == .dark ? Color(red: 0xE0/255.0, green: 0xE0/255.0, blue: 0xE0/255.0) : Color(red: 0x54/255.0, green: 0x47/255.0, blue: 0x39/255.0) // #E0E0E0 (Dark) : #544739 (Light)
+        // Light: #333333, Dark: #E0E0E0
+        colorScheme == .dark ? Color(red: 0xE0/255.0, green: 0xE0/255.0, blue: 0xE0/255.0) : Color(red: 0x33/255.0, green: 0x33/255.0, blue: 0x33/255.0)
     }
 
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) { // 全体のVStackのスペーシングを0に
-                // MARK: - 月選択UI
+            VStack(spacing: 0) { // Overall VStack with 0 spacing
+                // MARK: - Month selection UI
                 HStack {
                     Button(action: {
                         currentMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
                     }) {
                         Image(systemName: "chevron.left.circle.fill")
                             .font(.title2)
-                            .foregroundColor(customAccentColor) // カスタムカラーを適用
+                            .foregroundColor(customAccentColor) // Apply custom color
                     }
 
                     Spacer()
 
-                    // MARK: - DateFormatterで文字列に変換してからTextに渡す
+                    // MARK: - Convert to string with DateFormatter before passing to Text
                     Text(monthFormatter.string(from: currentMonth))
-                        .font(.system(size: 24, weight: .bold)) // 具体的なフォントサイズと太さを指定 (例: 24)
-                        .foregroundColor(customTextColor) // カスタムカラーを適用
-                        .frame(maxWidth: .infinity) // 利用可能な最大幅を使用
-                        .lineLimit(1) // 複数行にならないように制限
-                        .minimumScaleFactor(0.7) // 必要に応じて縮小 (例: 0.7まで縮小を許可)
+                        .font(.system(size: 24, weight: .bold)) // Specify concrete font size and weight (e.g., 24)
+                        .foregroundColor(customTextColor) // Apply custom color
+                        .frame(maxWidth: .infinity) // Use maximum available width
+                        .lineLimit(1) // Limit to single line
+                        .minimumScaleFactor(0.7) // Shrink if necessary (e.g., allow shrinking to 0.7)
                         .onTapGesture {
-                            // タップで現在の日付に戻る際も、月の初日午前0時に設定
-                            let calendar = Calendar.autoupdatingCurrent // autoupdatingCurrentを使用
+                            // When tapping to return to current date, also set to the first day of the month at 00:00
+                            let calendar = Calendar.autoupdatingCurrent // Use autoupdatingCurrent
                             let now = Date()
                             
-                            // 現在の年と月を取得
+                            // Get current year and month
                             let year = calendar.component(.year, from: now)
                             let month = calendar.component(.month, from: now)
                             
-                            // その月の1日午前0時0分0秒のDateComponentsを作成
+                            // Create DateComponents for the 1st day of the month at 00:00:00
                             var components = DateComponents()
                             components.year = year
                             components.month = month
@@ -128,7 +130,7 @@ struct ContentView: View {
                             components.second = 0
                             
                             if let startOfMonth = calendar.date(from: components) {
-                                currentMonth = calendar.startOfDay(for: startOfMonth) // その月の1日午前0時0分0秒に設定
+                                currentMonth = calendar.startOfDay(for: startOfMonth) // Set to 1st day of the month at 00:00:00
                             } else {
                                 currentMonth = now
                             }
@@ -142,38 +144,38 @@ struct ContentView: View {
                     }) {
                         Image(systemName: "chevron.right.circle.fill")
                             .font(.title2)
-                            .foregroundColor(customAccentColor) // カスタムカラーを適用
+                            .foregroundColor(customAccentColor) // Apply custom color
                     }
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 10) // 縦のパディングを増やす
-                .background(customBaseColor) // カスタムカラーを適用
+                .padding(.vertical, 10) // Increase vertical padding
+                .background(customBaseColor) // Apply custom color
 
-                // MARK: - CalendarViewを埋め込む
+                // MARK: - Embed CalendarView
                 CalendarView(month: currentMonth, habits: habits, selectedDate: $selectedDate)
                     .padding(.bottom, 10)
 
-                // MARK: - フィルタリングオプションのPicker (編集モード中は非表示)
-                if editMode?.wrappedValue != .active { // 編集モードでない場合のみ表示
+                // MARK: - Filtering options Picker (hidden in edit mode)
+                if editMode?.wrappedValue != .active { // Only show if not in edit mode
                     Picker("表示", selection: $selectedFilterOption) {
                         ForEach(FilterOption.allCases, id: \.self) { option in
                             Text(option.rawValue).tag(option)
                         }
                     }
-                    .pickerStyle(.segmented) // セグメントピッカーで表示
+                    .pickerStyle(.segmented) // Display as segmented picker
                     .padding(.horizontal)
-                    .padding(.bottom, 10) // パディングを調整
+                    .padding(.bottom, 10) // Adjust padding
                 }
 
 
                 List {
-                    // Today's Habits セクション
-                    Section { // ヘッダーは別に定義するため、Sectionの引数を削除
-                        // MARK: - 編集モードに応じてリストの表示を切り替え
+                    // Today's Habits Section
+                    Section { // Remove section argument for header to be defined separately
+                        // MARK: - Toggle list display based on edit mode
                         if editMode?.wrappedValue == .active {
-                            // 編集モードの場合: フィルタリングなし、ソートは作成日順（安定した並び替えのため）
+                            // In edit mode: no filtering, sort by creation date (for stable reordering)
                             let reorderableHabits = habits.sorted { (habit1, habit2) -> Bool in
-                                switch selectedSortOption { // 編集モードでもソートは適用されるが、並び替えの安定性のため作成日順を推奨
+                                switch selectedSortOption { // Sorting is still applied in edit mode, but creation date is recommended for stable reordering
                                 case .nameAscending:
                                     return habit1.name < habit2.name
                                 case .nameDescending:
@@ -192,7 +194,7 @@ struct ContentView: View {
                                     .padding(.vertical, 20)
                                     .frame(maxWidth: .infinity)
                             } else {
-                                ForEach(reorderableHabits) { habit in // 直接Habitオブジェクトをループ
+                                ForEach(reorderableHabits) { habit in // Loop directly through Habit objects
                                     HabitRowView(habit: habit, selectedDate: $selectedDate,
                                                  selectedHabitForGraph: $selectedHabitForGraph,
                                                  showingProgressGraphSheet: $showingProgressGraphSheet,
@@ -203,13 +205,13 @@ struct ContentView: View {
                                                  customTextColor: customTextColor)
                                 }
                                 .onMove { source, destination in
-                                    // 直接habits配列を操作
+                                    // Directly manipulate the habits array
                                     habits.move(fromOffsets: source, toOffset: destination)
                                     saveHabits()
                                 }
                             }
                         } else {
-                            // 通常モードの場合: フィルタリングとソートを適用
+                            // In normal mode: Apply filtering and sorting
                             let processedHabitsIndices = habits.indices
                                 .filter { index in
                                     let habit = habits[index]
@@ -247,7 +249,7 @@ struct ContentView: View {
                                     .frame(maxWidth: .infinity)
                             } else {
                                 ForEach(processedHabitsIndices, id: \.self) { index in
-                                    let habit = habits[index] // 直接habitを取得
+                                    let habit = habits[index] // Get habit directly
                                     HabitRowView(habit: habit, selectedDate: $selectedDate,
                                                  selectedHabitForGraph: $selectedHabitForGraph,
                                                  showingProgressGraphSheet: $showingProgressGraphSheet,
@@ -257,7 +259,7 @@ struct ContentView: View {
                                                  deleteHabit: deleteHabit,
                                                  customTextColor: customTextColor)
                                 }
-                                // 通常モードではonMoveは不要
+                                // onMove is not needed in normal mode
                             }
                         }
                     } header: {
@@ -271,18 +273,8 @@ struct ContentView: View {
                 .navigationTitle("OneDo")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    // MARK: - ダークモード切り替えトグルを削除
-                    // ToolbarItem(placement: .navigationBarLeading) {
-                    //     Toggle(isOn: $isDarkModeEnabled) {
-                    //         Image(systemName: isDarkModeEnabled ? "moon.fill" : "sun.max.fill")
-                    //             .font(.title2)
-                    //             .foregroundColor(customAccentColor)
-                    //     }
-                    //     .toggleStyle(.button) // ボタン形式のトグル
-                    //     .tint(customAccentColor) // トグルの色を調整
-                    // }
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        // MARK: - ソートオプションのメニュー
+                        // MARK: - Sort options menu
                         Menu {
                             Picker("並べ替え", selection: $selectedSortOption) {
                                 ForEach(SortOption.allCases, id: \.self) { option in
@@ -290,9 +282,9 @@ struct ContentView: View {
                                 }
                             }
                         } label: {
-                            Image(systemName: "arrow.up.arrow.down.circle.fill") // ソートアイコン
+                            Image(systemName: "arrow.up.arrow.down.circle.fill") // Sort icon
                                 .font(.title2)
-                                .foregroundColor(customAccentColor) // カスタムカラーを適用
+                                .foregroundColor(customAccentColor) // Apply custom color
                         }
                     }
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -301,17 +293,17 @@ struct ContentView: View {
                         }) {
                             Image(systemName: "plus.circle.fill")
                                 .font(.title2)
-                                .foregroundColor(customAccentColor) // カスタムカラーを適用
+                                .foregroundColor(customAccentColor) // Apply custom color
                         }
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
-                        // MARK: - EditButtonを日本語化されたカスタムボタンに置き換え (位置調整)
+                        // MARK: - Replaced EditButton with custom Japanese button (position adjustment)
                         Button(action: {
-                            // editModeの状態を切り替える
+                            // Toggle editMode state
                             editMode?.wrappedValue = (editMode?.wrappedValue == .active) ? .inactive : .active
                         }) {
                             Text(editMode?.wrappedValue == .active ? "完了" : "編集")
-                                .foregroundColor(customAccentColor) // カスタムカラーを適用
+                                .foregroundColor(customAccentColor) // Apply custom color
                         }
                     }
                 }
@@ -327,8 +319,8 @@ struct ContentView: View {
                             goalType: goalType,
                             targetValue: targetValue,
                             unit: unit,
-                            iconName: iconName, // ここでアイコン名を渡す
-                            customColorHex: customColorHex // ここでカスタムカラーHexを渡す
+                            iconName: iconName, // Pass icon name here
+                            customColorHex: customColorHex // Pass custom color Hex here
                         )
                         habits.append(newHabit)
                         saveHabits()
@@ -349,55 +341,54 @@ struct ContentView: View {
                 .onAppear(perform: {
                     loadHabits()
                     requestNotificationAuthorization()
-                    // MARK: - currentMonthとselectedDateを現在の月の初日にリセット（念のため）
-                    let calendar = Calendar.autoupdatingCurrent // autoupdatingCurrentを使用
+                    // MARK: - Reset currentMonth and selectedDate to the first day of the current month (just in case)
+                    let calendar = Calendar.autoupdatingCurrent // Use autoupdatingCurrent
                     let now = Date()
                     print("DEBUG: Current Date (now): \(now)") // Debug print
                     
-                    // 現在の年と月を取得
+                    // Get current year and month
                     let year = calendar.component(.year, from: now)
                     let month = calendar.component(.month, from: now)
                     
-                    // その月の1日午前0時0分0秒のDateComponentsを作成
+                    // Create DateComponents for the 1st day of the month at 00:00:00
                     var components = DateComponents()
                     components.year = year
                     components.month = month
-                    components.day = 1 // 1日に設定
-                    components.hour = 0 // 0時に設定
-                    components.minute = 0 // 0分に設定
-                    components.second = 0 // 0秒に設定
+                    components.day = 1 // Set to 1st
+                    components.hour = 0 // Set to 0 hour
+                    components.minute = 0 // Set to 0 minute
+                    components.second = 0 // Set to 0 second
                     
-                    // DateComponentsからDateオブジェクトを直接作成
+                    // Create Date object directly from DateComponents
                     if let startOfMonth = calendar.date(from: components) {
-                        currentMonth = startOfMonth // その月の1日午前0時0分0秒に設定
+                        currentMonth = startOfMonth // Set to 1st day of the month at 00:00:00
                         print("DEBUG: Start of Month: \(currentMonth)") // Debug print
                     } else {
                         currentMonth = now
                         print("DEBUG: Failed to get start of month. Using now for currentMonth.") // Debug print
                     }
-                    selectedDate = now // selectedDateは今日のまま
+                    selectedDate = now // selectedDate remains today
                     print("DEBUG: currentMonth after onAppear: \(currentMonth)") // Debug print
                     print("DEBUG: formatted currentMonth: \(monthFormatter.string(from: currentMonth))") // Debug print
                 })
             }
-            .background(customBaseColor.edgesIgnoringSafeArea(.all)) // カスタムカラーを適用
-            // MARK: - preferredColorSchemeを削除し、システム設定に連動
-            // .preferredColorScheme(isDarkModeEnabled ? .dark : .light)
+            .background(customBaseColor.edgesIgnoringSafeArea(.all)) // Apply custom color
+            // MARK: - Ensure preferredColorScheme is NOT set here to allow system theme
         }
     }
 
     // MARK: - DateFormatter for month display
     private var monthFormatter: DateFormatter {
         let formatter = DateFormatter()
-        // ロケール、カレンダー、タイムゾーンを明示的に設定し、安定性を高める
-        formatter.locale = Locale(identifier: "ja_JP") // 日本語ロケールを明示的に指定
-        formatter.calendar = Calendar(identifier: .gregorian) // グレゴリオ暦を明示的に指定
-        formatter.timeZone = TimeZone.current // 現在のタイムゾーンを設定
-        formatter.dateFormat = "yyyy年M月" // フォーマットを最後に設定
+        // Explicitly set locale, calendar, and timezone for stability
+        formatter.locale = Locale(identifier: "ja_JP") // Explicitly set Japanese locale
+        formatter.calendar = Calendar(identifier: .gregorian) // Explicitly set Gregorian calendar
+        formatter.timeZone = TimeZone.current // Set current timezone
+        formatter.dateFormat = "yyyy年M月" // Set format last
         return formatter
     }
 
-    // MARK: - データ永続化メソッド
+    // MARK: - Data persistence methods
 
     private func saveHabits() {
         if let encoded = try? JSONEncoder().encode(habits) {
@@ -410,7 +401,6 @@ struct ContentView: View {
 
     private func loadHabits() {
         if let savedHabitsData = UserDefaults.standard.data(forKey: HABITS_KEY) {
-            // MARK: - ここを修正: decodeメソッドに型とデータを明示的に渡す
             if let decodedHabits = try? JSONDecoder().decode([Habit].self, from: savedHabitsData) {
                 habits = decodedHabits
                 print("習慣データを読み込みました: \(habits.count)件")
@@ -422,7 +412,7 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - タスク削除メソッド
+    // MARK: - Task deletion method
     private func deleteHabit(at offsets: IndexSet) {
         for index in offsets {
             cancelNotification(for: habits[index])
@@ -431,7 +421,7 @@ struct ContentView: View {
         saveHabits()
     }
 
-    // MARK: - 習慣達成状況の切り替えメソッド
+    // MARK: - Habit completion toggle method
 
     private func toggleCompletion(for habit: Habit, date: Date) {
         if let index = habits.firstIndex(where: { $0.id == habit.id }) {
@@ -451,7 +441,7 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - 通知関連メソッド
+    // MARK: - Notification related methods
 
     private func requestNotificationAuthorization() {
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
@@ -527,8 +517,8 @@ struct ContentView: View {
     }
 }
 
-// MARK: - HabitRowView: 習慣リストの各行を分離したビュー
-// ContentViewの複雑さを軽減するために追加
+// MARK: - HabitRowView: Separate view for each habit list row
+// Added to reduce ContentView complexity
 struct HabitRowView: View {
     let habit: Habit
     @Binding var selectedDate: Date
@@ -537,25 +527,25 @@ struct HabitRowView: View {
     @Binding var selectedHabitForEdit: Habit?
     @Binding var showingEditHabitSheet: Bool
     let toggleCompletion: (Habit, Date) -> Void
-    let deleteHabit: (IndexSet) -> Void // deleteHabitはIndexSetを受け取るように変更
+    let deleteHabit: (IndexSet) -> Void // deleteHabit now accepts IndexSet
     let customTextColor: Color
 
     var body: some View {
         HStack {
-            // MARK: - カスタムアイコンとカラーを表示
+            // MARK: - Display custom icon and color
             if let iconName = habit.iconName, let colorHex = habit.customColorHex, let customColor = colorHex.toColor() {
                 Image(systemName: iconName)
                     .font(.title2)
-                    .foregroundColor(.white) // アイコンの色は白に固定
+                    .foregroundColor(.white) // Icon color fixed to white
                     .frame(width: 30, height: 30)
                     .background(customColor)
                     .clipShape(Circle())
                     .padding(.trailing, 5)
             } else {
-                // デフォルトのアイコンとカラー (ダークモード対応)
-                Image(systemName: "checkmark.circle.fill") // デフォルトアイコン
+                // Default icon and color (dark mode compatible)
+                Image(systemName: "checkmark.circle.fill") // Default icon
                     .font(.title2)
-                    .foregroundColor(Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0)) // デフォルトカラー
+                    .foregroundColor(Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0)) // Default color
                     .frame(width: 30, height: 30)
                     .background(Color(.systemGray5))
                     .clipShape(Circle())
@@ -581,7 +571,7 @@ struct HabitRowView: View {
                 }) {
                     Image(systemName: "chart.bar.fill")
                         .font(.title2)
-                        .foregroundColor(.blue) // グラフアイコンの色は青のまま
+                        .foregroundColor(.blue) // Graph icon color remains blue
                 }
                 .buttonStyle(BorderlessButtonStyle())
             }
@@ -591,7 +581,7 @@ struct HabitRowView: View {
             }) {
                 Image(systemName: habit.isCompleted(on: selectedDate) ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundColor(habit.isCompleted(on: selectedDate) ? .green : .gray) // チェックマークの色は緑/グレーのまま
+                    .foregroundColor(habit.isCompleted(on: selectedDate) ? .green : .gray) // Checkmark color remains green/gray
             }
             .buttonStyle(BorderlessButtonStyle())
         }
@@ -599,20 +589,15 @@ struct HabitRowView: View {
         .opacity(habit.isCompleted(on: selectedDate) ? 0.6 : 1.0)
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) {
-                // スワイプ削除は元のhabits配列のインデックスで動作させる必要があるため、
-                // ContentViewのdeleteHabitを直接呼び出すのではなく、
-                // ここでHabitのIDを使って削除対象を特定するように修正が必要
-                // ただし、onMoveとの兼ね合いで複雑になるため、ここでは一旦シンプルに
-                // deleteHabitクロージャはIndexSetを受け取るように変更済み
-                // 実際には、ContentViewでfilteredHabitsIndicesを管理し、
-                // そのインデックスをdeleteHabitに渡す必要があります。
-                // ここでは、onMoveの修正に集中するため、swipeActionsは既存のままにしています。
-                // (注意: onMoveとswipeActionsが同じForEachに適用される場合、
-                // onMoveが優先されることがあります。特に編集モードでは)
-                // 今回の修正では、編集モードではonMoveが有効になり、swipeActionsは無効になります。
-                // 通常モードではswipeActionsが有効になります。
+                // For swipe deletion to work with the original habits array index,
+                // it needs to identify the habit to delete using its ID here,
+                // rather than directly calling ContentView's deleteHabit.
+                // However, due to complexity with onMove, it's kept simple for now.
+                // (Note: If onMove and swipeActions are applied to the same ForEach,
+                // onMove may take precedence. Especially in edit mode.)
+                // In this revision, onMove is active in edit mode, and swipeActions is inactive.
+                // In normal mode, swipeActions is active.
             } label: {
-                // MARK: - ここを修正
                 HStack {
                     Image(systemName: "trash.fill")
                     Text("削除")
