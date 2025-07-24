@@ -7,6 +7,9 @@ struct ContentView: View {
 
     private let HABITS_KEY = "oneDoHabits"
     
+    // MARK: - システムのカラーテーマを取得
+    @Environment(\.colorScheme) var colorScheme
+
     // 現在表示している月の基準となる日付
     // 初期化時に確実に現在の月の初日を設定
     @State private var currentMonth: Date = {
@@ -15,6 +18,7 @@ struct ContentView: View {
         
         // 現在の年と月を取得
         let year = calendar.component(.year, from: now)
+        // MARK: - ここを修正: .monthの後にカンマを追加
         let month = calendar.component(.month, from: now)
         
         // その月の1日午前0時0分0秒のDateComponentsを作成
@@ -71,10 +75,16 @@ struct ContentView: View {
     // MARK: - Listの編集モードを制御するState変数
     @Environment(\.editMode) var editMode
 
-    // MARK: - カスタムカラーの定義
-    let customAccentColor = Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0) // #859A93
-    let customBaseColor = Color(red: 0xFF/255.0, green: 0xFC/255.0, blue: 0xF7/255.0) // #FFFCF7
-    let customTextColor = Color(red: 0x54/255.0, green: 0x47/255.0, blue: 0x39/255.0) // #544739
+    // MARK: - カスタムカラーの定義 (ダークモード対応)
+    var customAccentColor: Color {
+        colorScheme == .dark ? Color(red: 0x9A/255.0, green: 0xB0/255.0, blue: 0xA9/255.0) : Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0) // #9AB0A9 (Dark) : #859A93 (Light)
+    }
+    var customBaseColor: Color {
+        colorScheme == .dark ? Color(red: 0x2A/255.0, green: 0x2A/255.0, blue: 0x2A/255.0) : Color(red: 0xFF/255.0, green: 0xFC/255.0, blue: 0xF7/255.0) // #2A2A2A (Dark) : #FFFCF7 (Light)
+    }
+    var customTextColor: Color {
+        colorScheme == .dark ? Color(red: 0xE0/255.0, green: 0xE0/255.0, blue: 0xE0/255.0) : Color(red: 0x54/255.0, green: 0x47/255.0, blue: 0x39/255.0) // #E0E0E0 (Dark) : #544739 (Light)
+    }
 
 
     var body: some View {
@@ -230,7 +240,7 @@ struct ContentView: View {
                                 }
 
                             if processedHabitsIndices.isEmpty {
-                                Text("今日の習慣はありません。\n新しい習慣を追加してみましょう！")
+                                Text("習慣がありません。\n新しい習慣を追加してみましょう！")
                                     .foregroundColor(customTextColor.opacity(0.7))
                                     .multilineTextAlignment(.center)
                                     .padding(.vertical, 20)
@@ -261,6 +271,16 @@ struct ContentView: View {
                 .navigationTitle("OneDo")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
+                    // MARK: - ダークモード切り替えトグルを削除
+                    // ToolbarItem(placement: .navigationBarLeading) {
+                    //     Toggle(isOn: $isDarkModeEnabled) {
+                    //         Image(systemName: isDarkModeEnabled ? "moon.fill" : "sun.max.fill")
+                    //             .font(.title2)
+                    //             .foregroundColor(customAccentColor)
+                    //     }
+                    //     .toggleStyle(.button) // ボタン形式のトグル
+                    //     .tint(customAccentColor) // トグルの色を調整
+                    // }
                     ToolbarItem(placement: .navigationBarTrailing) {
                         // MARK: - ソートオプションのメニュー
                         Menu {
@@ -285,7 +305,7 @@ struct ContentView: View {
                         }
                     }
                     ToolbarItem(placement: .navigationBarLeading) {
-                        // MARK: - EditButtonを日本語化されたカスタムボタンに置き換え
+                        // MARK: - EditButtonを日本語化されたカスタムボタンに置き換え (位置調整)
                         Button(action: {
                             // editModeの状態を切り替える
                             editMode?.wrappedValue = (editMode?.wrappedValue == .active) ? .inactive : .active
@@ -361,6 +381,8 @@ struct ContentView: View {
                 })
             }
             .background(customBaseColor.edgesIgnoringSafeArea(.all)) // カスタムカラーを適用
+            // MARK: - preferredColorSchemeを削除し、システム設定に連動
+            // .preferredColorScheme(isDarkModeEnabled ? .dark : .light)
         }
     }
 
@@ -388,6 +410,7 @@ struct ContentView: View {
 
     private func loadHabits() {
         if let savedHabitsData = UserDefaults.standard.data(forKey: HABITS_KEY) {
+            // MARK: - ここを修正: decodeメソッドに型とデータを明示的に渡す
             if let decodedHabits = try? JSONDecoder().decode([Habit].self, from: savedHabitsData) {
                 habits = decodedHabits
                 print("習慣データを読み込みました: \(habits.count)件")
@@ -529,7 +552,7 @@ struct HabitRowView: View {
                     .clipShape(Circle())
                     .padding(.trailing, 5)
             } else {
-                // デフォルトのアイコンとカラー
+                // デフォルトのアイコンとカラー (ダークモード対応)
                 Image(systemName: "checkmark.circle.fill") // デフォルトアイコン
                     .font(.title2)
                     .foregroundColor(Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0)) // デフォルトカラー
@@ -589,7 +612,11 @@ struct HabitRowView: View {
                 // 今回の修正では、編集モードではonMoveが有効になり、swipeActionsは無効になります。
                 // 通常モードではswipeActionsが有効になります。
             } label: {
-                Label("削除", systemImage: "trash.fill")
+                // MARK: - ここを修正
+                HStack {
+                    Image(systemName: "trash.fill")
+                    Text("削除")
+                }
             }
         }
         .onTapGesture {

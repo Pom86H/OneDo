@@ -14,10 +14,18 @@ struct CalendarView: View {
     // MARK: - 日本語の曜日略称を追加
     private let japaneseWeekdaySymbols = ["日", "月", "火", "水", "木", "金", "土"]
 
-    // MARK: - カスタムカラーの定義 (ContentViewと合わせておく)
-    let customAccentColor = Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0) // #859A93
-    let customBaseColor = Color(red: 0xFF/255.0, green: 0xFC/255.0, blue: 0xF7/255.0) // #FFFCF7
-    let customTextColor = Color(red: 0x54/255.0, green: 0x47/255.0, blue: 0x39/255.0) // #544739
+    // MARK: - カスタムカラーの定義 (ダークモード対応)
+    @Environment(\.colorScheme) var colorScheme
+
+    var customAccentColor: Color {
+        colorScheme == .dark ? Color(red: 0x9A/255.0, green: 0xB0/255.0, blue: 0xA9/255.0) : Color(red: 0x85/255.0, green: 0x9A/255.0, blue: 0x93/255.0) // #9AB0A9 (Dark) : #859A93 (Light)
+    }
+    var customBaseColor: Color {
+        colorScheme == .dark ? Color(red: 0x2A/255.0, green: 0x2A/255.0, blue: 0x2A/255.0) : Color(red: 0xFF/255.0, green: 0xFC/255.0, blue: 0xF7/255.0) // #2A2A2A (Dark) : #FFFCF7 (Light)
+    }
+    var customTextColor: Color {
+        colorScheme == .dark ? Color(red: 0xE0/255.0, green: 0xE0/255.0, blue: 0xE0/255.0) : Color(red: 0x54/255.0, green: 0x47/255.0, blue: 0x39/255.0) // #E0E0E0 (Dark) : #544739 (Light)
+    }
 
 
     var body: some View {
