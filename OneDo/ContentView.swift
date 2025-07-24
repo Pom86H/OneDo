@@ -553,10 +553,20 @@ struct HabitRowView: View {
             }
 
             VStack(alignment: .leading) {
-                Text(habit.name)
-                    .font(.body)
-                    .foregroundColor(customTextColor)
-                    .strikethrough(habit.isCompleted(on: selectedDate), color: customTextColor.opacity(0.7))
+                HStack { // MARK: - New HStack for habit name and time
+                    Text(habit.name)
+                        .font(.body)
+                        .foregroundColor(customTextColor)
+                        .strikethrough(habit.isCompleted(on: selectedDate), color: customTextColor.opacity(0.7))
+                    
+                    // MARK: - Display reminder time if available
+                    if let reminderTime = habit.reminderTime, habit.reminderEnabled {
+                        Text(reminderTime, formatter: timeFormatter)
+                            .font(.caption)
+                            .foregroundColor(customTextColor.opacity(0.7))
+                    }
+                }
+                
                 Text("連続 \(habit.currentStreak) 日")
                     .font(.caption)
                     .foregroundColor(customTextColor.opacity(0.7))
@@ -608,5 +618,14 @@ struct HabitRowView: View {
             selectedHabitForEdit = habit
             showingEditHabitSheet = true
         }
+    }
+
+    // MARK: - Time Formatter
+    private var timeFormatter: DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.timeStyle = .short // 例: "9:00" または "午前9:00"
+        formatter.dateStyle = .none
+        return formatter
     }
 }
