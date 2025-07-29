@@ -76,160 +76,123 @@ struct ContentView: View {
 
     // MARK: - Custom color definitions (adjusted for dark mode compatibility)
     var customAccentColor: Color {
-        // Light: #4A90E2, Dark: #7FB8F7
-        colorScheme == .dark ? Color(red: 0x7F/255.0, green: 0xB8/255.0, blue: 0xF7/255.0) : Color(red: 0x4A/255.0, green: 0x90/255.0, blue: 0xE2/255.0)
+        // Light: #D48C45, Dark: #F5B070 (Warm Orange/Brown)
+        colorScheme == .dark ? Color(red: 0xF5/255.0, green: 0xB0/255.0, blue: 0x70/255.0) : Color(red: 0xD4/255.0, green: 0x8C/255.0, blue: 0x45/255.0)
     }
     var customBaseColor: Color {
-        // Light: #FFFFFF, Dark: #121212
-        colorScheme == .dark ? Color(red: 0x12/255.0, green: 0x12/255.0, blue: 0x12/255.0) : Color(red: 0xFF/255.0, green: 0xFF/255.0, blue: 0xFF/255.0)
+        // Light: #FDF8F0, Dark: #2A2A2A (Soft Off-white / Dark Gray)
+        colorScheme == .dark ? Color(red: 0x2A/255.0, green: 0x2A/255.0, blue: 0x2A/255.0) : Color(red: 0xFD/255.0, green: 0xF8/255.0, blue: 0xF0/255.0)
     }
     var customTextColor: Color {
-        // Light: #333333, Dark: #E0E0E0
-        colorScheme == .dark ? Color(red: 0xE0/255.0, green: 0xE0/255.0, blue: 0xE0/255.0) : Color(red: 0x33/255.0, green: 0x33/255.0, blue: 0x33/255.0)
+        // Light: #544739, Dark: #E0DCD7 (Dark Brown / Light Warm Gray)
+        colorScheme == .dark ? Color(red: 0xE0/255.0, green: 0xDC/255.0, blue: 0xD7/255.0) : Color(red: 0x54/255.0, green: 0x47/255.0, blue: 0x39/255.0)
     }
 
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 0) { // Overall VStack with 0 spacing
-                // MARK: - Month selection UI
-                HStack {
-                    Button(action: {
-                        currentMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
-                    }) {
-                        Image(systemName: "chevron.left.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(customAccentColor) // Apply custom color
-                    }
+            ZStack(alignment: .bottomTrailing) { // MARK: - ZStackを追加し、FABを右下配置
+                VStack(spacing: 0) { // Overall VStack with 0 spacing
+                    // MARK: - Month selection UI
+                    HStack {
+                        Button(action: {
+                            currentMonth = Calendar.current.date(byAdding: .month, value: -1, to: currentMonth) ?? currentMonth
+                        }) {
+                            Image(systemName: "chevron.left.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(customAccentColor) // Apply custom color
+                        }
 
-                    Spacer()
+                        Spacer()
 
-                    // MARK: - Convert to string with DateFormatter before passing to Text
-                    Text(monthFormatter.string(from: currentMonth))
-                        .font(.system(size: 24, weight: .bold)) // Specify concrete font size and weight (e.g., 24)
-                        .foregroundColor(customTextColor) // Apply custom color
-                        .frame(maxWidth: .infinity) // Use maximum available width
-                        .lineLimit(1) // Limit to single line
-                        .minimumScaleFactor(0.7) // Shrink if necessary (e.g., allow shrinking to 0.7)
-                        .onTapGesture {
-                            // When tapping to return to current date, also set to the first day of the month at 00:00
-                            let calendar = Calendar.autoupdatingCurrent // Use autoupdatingCurrent
-                            let now = Date()
-                            
-                            // Get current year and month
-                            let year = calendar.component(.year, from: now)
-                            let month = calendar.component(.month, from: now)
-                            
-                            // Create DateComponents for the 1st day of the month at 00:00:00
-                            var components = DateComponents()
-                            components.year = year
-                            components.month = month
-                            components.day = 1
-                            components.hour = 0
-                            components.minute = 0
-                            components.second = 0
-                            
-                            if let startOfMonth = calendar.date(from: components) {
-                                currentMonth = calendar.startOfDay(for: startOfMonth) // Set to 1st day of the month at 00:00:00
-                            } else {
-                                currentMonth = now
+                        // MARK: - Convert to string with DateFormatter before passing to Text
+                        Text(monthFormatter.string(from: currentMonth))
+                            .font(.system(size: 24, weight: .bold)) // Specify concrete font size and weight (e.g., 24)
+                            .foregroundColor(customTextColor) // Apply custom color
+                            .frame(maxWidth: .infinity) // Use maximum available width
+                            .lineLimit(1) // Limit to single line
+                            .minimumScaleFactor(0.7) // Shrink if necessary (e.g., allow shrinking to 0.7)
+                            .onTapGesture {
+                                // When tapping to return to current date, also set to the first day of the month at 00:00
+                                let calendar = Calendar.autoupdatingCurrent // Use autoupdatingCurrent
+                                let now = Date()
+                                
+                                // Get current year and month
+                                let year = calendar.component(.year, from: now)
+                                let month = calendar.component(.month, from: now)
+                                
+                                // Create DateComponents for the 1st day of the month at 00:00:00
+                                var components = DateComponents()
+                                components.year = year
+                                components.month = month
+                                components.day = 1
+                                components.hour = 0
+                                components.minute = 0
+                                components.second = 0
+                                
+                                if let startOfMonth = calendar.date(from: components) {
+                                    currentMonth = calendar.startOfDay(for: startOfMonth) // Set to 1st day of the month at 00:00:00
+                                } else {
+                                    currentMonth = now
+                                }
+                                selectedDate = now
                             }
-                            selectedDate = now
-                        }
 
-                    Spacer()
+                        Spacer()
 
-                    Button(action: {
-                        currentMonth = Calendar.current.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
-                    }) {
-                        Image(systemName: "chevron.right.circle.fill")
-                            .font(.title2)
-                            .foregroundColor(customAccentColor) // Apply custom color
-                    }
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 10) // Increase vertical padding
-                .background(customBaseColor) // Apply custom color
-
-                // MARK: - Embed CalendarView
-                CalendarView(month: currentMonth, habits: habits, selectedDate: $selectedDate)
-                    .padding(.bottom, 10)
-
-                // MARK: - Filtering options Picker (hidden in edit mode)
-                if editMode?.wrappedValue != .active { // Only show if not in edit mode
-                    Picker("表示", selection: $selectedFilterOption) {
-                        ForEach(FilterOption.allCases, id: \.self) { option in
-                            Text(option.rawValue).tag(option)
+                        Button(action: {
+                            currentMonth = Calendar.current.date(byAdding: .month, value: 1, to: currentMonth) ?? currentMonth
+                        }) {
+                            Image(systemName: "chevron.right.circle.fill")
+                                .font(.title2)
+                                .foregroundColor(customAccentColor) // Apply custom color
                         }
                     }
-                    .pickerStyle(.segmented) // Display as segmented picker
                     .padding(.horizontal)
-                    .padding(.bottom, 10) // Adjust padding
-                }
+                    .padding(.vertical, 10) // Increase vertical padding
+                    .background(customBaseColor) // Apply custom color
+
+                    // MARK: - Embed CalendarView
+                    CalendarView(month: currentMonth, habits: habits, selectedDate: $selectedDate)
+                        .padding(.bottom, 10)
+
+                    // MARK: - Filtering options Custom Segmented Control (hidden in edit mode)
+                    if editMode?.wrappedValue != .active { // Only show if not in edit mode
+                        HStack(spacing: 0) { // No spacing between segments, internal padding will create visual separation
+                            ForEach(FilterOption.allCases, id: \.self) { option in
+                                Button(action: {
+                                    selectedFilterOption = option
+                                }) {
+                                    Text(option.rawValue)
+                                        .font(.caption) // Smaller font for segments
+                                        .fontWeight(.medium)
+                                        .foregroundColor(selectedFilterOption == option ? .white : customTextColor)
+                                        .padding(.vertical, 8)
+                                        .padding(.horizontal, 12)
+                                        .frame(maxWidth: .infinity) // Distribute space evenly
+                                        .background(selectedFilterOption == option ? customAccentColor : customBaseColor)
+                                        .cornerRadius(8) // Rounded corners for individual segments
+                                }
+                                .buttonStyle(PlainButtonStyle()) // Remove default button styling
+                            }
+                        }
+                        .background(customBaseColor) // Overall background for the segmented control container
+                        .cornerRadius(10) // Overall rounded corners for the container
+                        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2) // Subtle shadow
+                        .padding(.horizontal)
+                        .padding(.bottom, 10)
+                        .animation(.easeInOut(duration: 0.2), value: selectedFilterOption) // Smooth transition on selection
+                    }
 
 
-                List {
-                    // Today's Habits Section
-                    Section { // Remove section argument for header to be defined separately
-                        // MARK: - Toggle list display based on edit mode
-                        if editMode?.wrappedValue == .active {
-                            // In edit mode: no filtering, sort by creation date (for stable reordering)
-                            let reorderableHabits = habits.sorted { (habit1, habit2) -> Bool in
-                                switch selectedSortOption { // Sorting is still applied in edit mode, but creation date is recommended for stable reordering
-                                case .nameAscending:
-                                    return habit1.name < habit2.name
-                                case .nameDescending:
-                                    return habit1.name > habit2.name
-                                case .creationDateAscending:
-                                    return habit1.id.uuidString < habit2.id.uuidString
-                                case .creationDateDescending:
-                                    return habit1.id.uuidString > habit2.id.uuidString
-                                }
-                            }
-                            
-                            if reorderableHabits.isEmpty {
-                                Text("習慣がありません。\n新しい習慣を追加してみましょう！")
-                                    .foregroundColor(customTextColor.opacity(0.7))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.vertical, 20)
-                                    .frame(maxWidth: .infinity)
-                            } else {
-                                ForEach(reorderableHabits) { habit in // Loop directly through Habit objects
-                                    HabitRowView(habit: habit, selectedDate: $selectedDate,
-                                                 selectedHabitForGraph: $selectedHabitForGraph,
-                                                 showingProgressGraphSheet: $showingProgressGraphSheet,
-                                                 selectedHabitForEdit: $selectedHabitForEdit,
-                                                 showingEditHabitSheet: $showingEditHabitSheet,
-                                                 toggleCompletion: toggleCompletion,
-                                                 deleteHabit: deleteHabit,
-                                                 customTextColor: customTextColor)
-                                }
-                                .onMove { source, destination in
-                                    // Directly manipulate the habits array
-                                    habits.move(fromOffsets: source, toOffset: destination)
-                                    saveHabits()
-                                }
-                            }
-                        } else {
-                            // In normal mode: Apply filtering and sorting
-                            let processedHabitsIndices = habits.indices
-                                .filter { index in
-                                    let habit = habits[index]
-                                    let isDueToday = habit.repeatSchedule.isDue(on: selectedDate)
-                                    
-                                    switch selectedFilterOption {
-                                    case .all:
-                                        return isDueToday
-                                    case .completed:
-                                        return isDueToday && habit.isCompleted(on: selectedDate)
-                                    case .incomplete:
-                                        return isDueToday && !habit.isCompleted(on: selectedDate)
-                                    }
-                                }
-                                .sorted { (index1, index2) -> Bool in
-                                    let habit1 = habits[index1]
-                                    let habit2 = habits[index2]
-                                    switch selectedSortOption {
+                    List {
+                        // Today's Habits Section
+                        Section { // Remove section argument for header to be defined separately
+                            // MARK: - Toggle list display based on edit mode
+                            if editMode?.wrappedValue == .active {
+                                // In edit mode: no filtering, sort by creation date (for stable reordering)
+                                let reorderableHabits = habits.sorted { (habit1, habit2) -> Bool in
+                                    switch selectedSortOption { // Sorting is still applied in edit mode, but creation date is recommended for stable reordering
                                     case .nameAscending:
                                         return habit1.name < habit2.name
                                     case .nameDescending:
@@ -240,140 +203,225 @@ struct ContentView: View {
                                         return habit1.id.uuidString > habit2.id.uuidString
                                     }
                                 }
-
-                            if processedHabitsIndices.isEmpty {
-                                Text("習慣がありません。\n新しい習慣を追加してみましょう！")
-                                    .foregroundColor(customTextColor.opacity(0.7))
+                                
+                                if reorderableHabits.isEmpty {
+                                    Text("習慣がありません。\n新しい習慣を追加してみましょう！")
+                                        .foregroundColor(customTextColor.opacity(0.7))
                                     .multilineTextAlignment(.center)
                                     .padding(.vertical, 20)
                                     .frame(maxWidth: .infinity)
+                                } else {
+                                    ForEach(reorderableHabits) { habit in // Loop directly through Habit objects
+                                        // MARK: - customAccentColorとcustomTextColorをHabitRowViewに渡す
+                                        HabitRowView(habit: habit, selectedDate: $selectedDate,
+                                                     selectedHabitForGraph: $selectedHabitForGraph,
+                                                     showingProgressGraphSheet: $showingProgressGraphSheet,
+                                                     selectedHabitForEdit: $selectedHabitForEdit,
+                                                     showingEditHabitSheet: $showingEditHabitSheet,
+                                                     toggleCompletion: toggleCompletion,
+                                                     deleteHabit: deleteHabit,
+                                                     customTextColor: customTextColor, // ここで渡す
+                                                     customAccentColor: customAccentColor) // ここで渡す
+                                        // MARK: - List row styling for custom cards
+                                        .listRowBackground(Color.clear) // Make the default list row background transparent
+                                        .listRowSeparator(.hidden) // Hide the default list row separator
+                                        .listRowInsets(EdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10)) // Add spacing around the card
+                                    }
+                                }
                             } else {
-                                ForEach(processedHabitsIndices, id: \.self) { index in
-                                    let habit = habits[index] // Get habit directly
-                                    HabitRowView(habit: habit, selectedDate: $selectedDate,
-                                                 selectedHabitForGraph: $selectedHabitForGraph,
-                                                 showingProgressGraphSheet: $showingProgressGraphSheet,
-                                                 selectedHabitForEdit: $selectedHabitForEdit,
-                                                 showingEditHabitSheet: $showingEditHabitSheet,
-                                                 toggleCompletion: toggleCompletion,
-                                                 deleteHabit: deleteHabit,
-                                                 customTextColor: customTextColor)
+                                // In normal mode: Apply filtering and sorting
+                                let processedHabitsIndices = habits.indices
+                                    .filter { index in
+                                        let habit = habits[index]
+                                        let isDueToday = habit.repeatSchedule.isDue(on: selectedDate)
+                                        
+                                        switch selectedFilterOption {
+                                        case .all:
+                                            return isDueToday
+                                        case .completed:
+                                            return isDueToday && habit.isCompleted(on: selectedDate)
+                                        case .incomplete:
+                                            return isDueToday && !habit.isCompleted(on: selectedDate)
+                                        }
+                                    }
+                                    .sorted { (index1, index2) -> Bool in
+                                        let habit1 = habits[index1]
+                                        let habit2 = habits[index2]
+                                        switch selectedSortOption {
+                                        case .nameAscending:
+                                            return habit1.name < habit2.name
+                                        case .nameDescending:
+                                            return habit1.name > habit2.name
+                                        case .creationDateAscending:
+                                            return habit1.id.uuidString < habit2.id.uuidString
+                                        case .creationDateDescending:
+                                            return habit1.id.uuidString > habit2.id.uuidString
+                                        }
+                                    }
+
+                                if processedHabitsIndices.isEmpty {
+                                    Text("習慣がありません。\n新しい習慣を追加してみましょう！")
+                                        .foregroundColor(customTextColor.opacity(0.7))
+                                    .multilineTextAlignment(.center)
+                                    .padding(.vertical, 20)
+                                    .frame(maxWidth: .infinity)
+                                } else {
+                                    ForEach(processedHabitsIndices, id: \.self) { index in
+                                        let habit = habits[index] // Get habit directly
+                                        // MARK: - customAccentColorとcustomTextColorをHabitRowViewに渡す
+                                        HabitRowView(habit: habit, selectedDate: $selectedDate,
+                                                     selectedHabitForGraph: $selectedHabitForGraph,
+                                                     showingProgressGraphSheet: $showingProgressGraphSheet,
+                                                     selectedHabitForEdit: $selectedHabitForEdit,
+                                                     showingEditHabitSheet: $showingEditHabitSheet,
+                                                     toggleCompletion: toggleCompletion,
+                                                     deleteHabit: deleteHabit,
+                                                     customTextColor: customTextColor, // ここで渡す
+                                                     customAccentColor: customAccentColor) // ここで渡す
+                                        // MARK: - List row styling for custom cards
+                                        .listRowBackground(Color.clear) // Make the default list row background transparent
+                                        .listRowSeparator(.hidden) // Hide the default list row separator
+                                        .listRowInsets(EdgeInsets(top: 5, leading: 10, bottom: 5, trailing: 10)) // Add spacing around the card
+                                    }
                                 }
-                                // onMove is not needed in normal mode
                             }
                         }
-                    } header: {
-                        Text("今日の習慣")
-                            .font(.headline)
-                            .foregroundColor(customTextColor)
-                            .padding(.vertical, 5)
-                            .padding(.leading, -15)
+                        header: {
+                            Text("今日の習慣")
+                                .font(.headline)
+                                .foregroundColor(customTextColor)
+                                .padding(.vertical, 5)
+                                .padding(.leading, -15)
+                        }
                     }
-                }
-                .navigationTitle("OneDo")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        // MARK: - Sort options menu
-                        Menu {
-                            Picker("並べ替え", selection: $selectedSortOption) {
-                                ForEach(SortOption.allCases, id: \.self) { option in
-                                    Text(option.rawValue).tag(option)
-                                }
+                    // MARK: - ナビゲーションタイトルをToolbarItemでカスタム表示
+                    .toolbar {
+                        ToolbarItem(placement: .principal) { // ナビゲーションバー中央に配置
+                            HStack(spacing: 5) { // アイコンとテキストの間隔
+                                Image(systemName: "pawprint.fill") // 犬の足跡アイコン
+                                    .font(.title2) // アイコンサイズ
+                                    .foregroundColor(customAccentColor) // アクセントカラーを適用
+                                Text("OneDo")
+                                    .font(.system(size: 28, weight: .bold)) // アプリ名に合わせたフォントサイズと太さ
+                                    .foregroundColor(customTextColor) // カスタムテキストカラーを適用
                             }
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down.circle.fill") // Sort icon
-                                .font(.title2)
-                                .foregroundColor(customAccentColor) // Apply custom color
+                        }
+                        ToolbarItem(placement: .navigationBarTrailing) {
+                            // MARK: - Sort options menu
+                            Menu {
+                                Picker("並べ替え", selection: $selectedSortOption) {
+                                    ForEach(SortOption.allCases, id: \.self) { option in
+                                        Text(option.rawValue).tag(option)
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "arrow.up.arrow.down.circle.fill") // Sort icon
+                                    .font(.title2)
+                                    .foregroundColor(customAccentColor) // Apply custom color
+                            }
+                        }
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            // MARK: - EditButtonを日本語化されたカスタムボタンに置き換え (位置調整とデザイン変更)
+                            Button(action: {
+                                // editModeの状態を切り替える
+                                editMode?.wrappedValue = (editMode?.wrappedValue == .active) ? .inactive : .active
+                            }) {
+                                Text(editMode?.wrappedValue == .active ? "完了" : "編集")
+                                    .font(.caption) // フォントサイズを調整
+                                    .fontWeight(.medium)
+                                    .foregroundColor(customAccentColor) // テキストカラーはアクセントカラー
+                                    .padding(.horizontal, 10) // 水平方向のパディング
+                                    .padding(.vertical, 5) // 垂直方向のパディング
+                                    .background(
+                                        Capsule() // カプセル形状の背景
+                                            .stroke(customAccentColor, lineWidth: 1.5) // アクセントカラーの枠線
+                                    )
+                            }
                         }
                     }
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            showingAddHabitSheet = true
-                        }) {
-                            Image(systemName: "plus.circle.fill")
-                                .font(.title2)
-                                .foregroundColor(customAccentColor) // Apply custom color
-                        }
-                    }
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        // MARK: - Replaced EditButton with custom Japanese button (position adjustment)
-                        Button(action: {
-                            // Toggle editMode state
-                            editMode?.wrappedValue = (editMode?.wrappedValue == .active) ? .inactive : .active
-                        }) {
-                            Text(editMode?.wrappedValue == .active ? "完了" : "編集")
-                                .foregroundColor(customAccentColor) // Apply custom color
-                        }
-                    }
-                }
-                .sheet(isPresented: $showingAddHabitSheet) {
-                    AddHabitView { newHabitName, repeatSchedule, reminderEnabled, reminderTime, reminderDaysOfWeek, goalType, targetValue, unit, iconName, customColorHex in
-                        let newHabit = Habit(
-                            name: newHabitName,
-                            isCompleted: false,
-                            repeatSchedule: repeatSchedule,
-                            reminderTime: reminderTime,
-                            reminderEnabled: reminderEnabled,
-                            reminderDaysOfWeek: reminderDaysOfWeek,
-                            goalType: goalType,
-                            targetValue: targetValue,
-                            unit: unit,
-                            iconName: iconName, // Pass icon name here
-                            customColorHex: customColorHex // Pass custom color Hex here
-                        )
-                        habits.append(newHabit)
-                        saveHabits()
-                        scheduleNotifications()
-                    }
-                }
-                .sheet(item: $selectedHabitForEdit) { habitToEdit in
-                    if let index = habits.firstIndex(where: { $0.id == habitToEdit.id }) {
-                        EditHabitView(habit: $habits[index]) {
+                    .sheet(isPresented: $showingAddHabitSheet) {
+                        AddHabitView { newHabitName, repeatSchedule, reminderEnabled, reminderTime, reminderDaysOfWeek, goalType, targetValue, unit, iconName, customColorHex in
+                            let newHabit = Habit(
+                                name: newHabitName,
+                                isCompleted: false,
+                                repeatSchedule: repeatSchedule,
+                                reminderTime: reminderTime,
+                                reminderEnabled: reminderEnabled,
+                                reminderDaysOfWeek: reminderDaysOfWeek,
+                                goalType: goalType,
+                                targetValue: targetValue,
+                                unit: unit,
+                                iconName: iconName, // Pass icon name here
+                                customColorHex: customColorHex // Pass custom color Hex here
+                            )
+                            habits.append(newHabit)
                             saveHabits()
                             scheduleNotifications()
                         }
                     }
-                }
-                .sheet(item: $selectedHabitForGraph) { habitForGraph in
-                    ProgressGraphView(habit: habitForGraph)
-                }
-                .onAppear(perform: {
-                    loadHabits()
-                    requestNotificationAuthorization()
-                    // MARK: - Reset currentMonth and selectedDate to the first day of the current month (just in case)
-                    let calendar = Calendar.autoupdatingCurrent // Use autoupdatingCurrent
-                    let now = Date()
-                    print("DEBUG: Current Date (now): \(now)") // Debug print
-                    
-                    // Get current year and month
-                    let year = calendar.component(.year, from: now)
-                    let month = calendar.component(.month, from: now)
-                    
-                    // Create DateComponents for the 1st day of the month at 00:00:00
-                    var components = DateComponents()
-                    components.year = year
-                    components.month = month
-                    components.day = 1 // Set to 1st
-                    components.hour = 0 // Set to 0 hour
-                    components.minute = 0 // Set to 0 minute
-                    components.second = 0 // Set to 0 second
-                    
-                    // Create Date object directly from DateComponents
-                    if let startOfMonth = calendar.date(from: components) {
-                        currentMonth = startOfMonth // Set to 1st day of the month at 00:00:00
-                        print("DEBUG: Start of Month: \(currentMonth)") // Debug print
-                    } else {
-                        currentMonth = now
-                        print("DEBUG: Failed to get start of month. Using now for currentMonth.") // Debug print
+                    .sheet(item: $selectedHabitForEdit) { habitToEdit in
+                        if let index = habits.firstIndex(where: { $0.id == habitToEdit.id }) {
+                            EditHabitView(habit: $habits[index]) {
+                                saveHabits()
+                                scheduleNotifications()
+                            }
+                        }
                     }
-                    selectedDate = now // selectedDate remains today
-                    print("DEBUG: currentMonth after onAppear: \(currentMonth)") // Debug print
-                    print("DEBUG: formatted currentMonth: \(monthFormatter.string(from: currentMonth))") // Debug print
-                })
+                    .sheet(item: $selectedHabitForGraph) { habitForGraph in
+                        ProgressGraphView(habit: habitForGraph)
+                    }
+                    .onAppear(perform: {
+                        loadHabits()
+                        requestNotificationAuthorization()
+                        // MARK: - Reset currentMonth and selectedDate to the first day of the month (just in case)
+                        let calendar = Calendar.autoupdatingCurrent // Use autoupdatingCurrent
+                        let now = Date()
+                        print("DEBUG: Current Date (now): \(now)") // Debug print
+                        
+                        // Get current year and month
+                        let year = calendar.component(.year, from: now)
+                        let month = calendar.component(.month, from: now)
+                        
+                        // Create DateComponents for the 1st day of the month at 00:00:00
+                        var components = DateComponents()
+                        components.year = year
+                        components.month = month
+                        components.day = 1 // Set to 1st
+                        components.hour = 0 // Set to 0 hour
+                        components.minute = 0 // Set to 0 minute
+                        components.second = 0 // Set to 0 second
+                        
+                        // Create Date object directly from DateComponents
+                        if let startOfMonth = calendar.date(from: components) {
+                            currentMonth = startOfMonth // Set to 1st day of the month at 00:00:00
+                            print("DEBUG: Start of Month: \(currentMonth)") // Debug print
+                        } else {
+                            currentMonth = now
+                            print("DEBUG: Failed to get start of month. Using now for currentMonth.") // Debug print
+                        }
+                        selectedDate = now // selectedDate remains today
+                        print("DEBUG: currentMonth after onAppear: \(currentMonth)") // Debug print
+                        print("DEBUG: formatted currentMonth: \(monthFormatter.string(from: currentMonth))") // Debug print
+                    })
+                }
+                .background(customBaseColor.edgesIgnoringSafeArea(.all)) // Apply custom color
+                // MARK: - Ensure preferredColorScheme is NOT set here to allow system theme
+
+                // MARK: - Floating Action Button (FAB)
+                Button(action: {
+                    showingAddHabitSheet = true
+                }) {
+                    Image(systemName: "plus") // シンプルなプラスアイコン
+                        .font(.title2) // MARK: - アイコンサイズを調整 (.title -> .title2)
+                        .foregroundColor(.white) // アイコンの色は白
+                        .padding(16) // MARK: - パディングでボタンの大きさを調整 (20 -> 16)
+                        .background(customAccentColor) // アクセントカラーで塗りつぶし
+                        .clipShape(Circle()) // 円形にクリップ
+                        .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 3) // 影を追加
+                }
+                .padding(.trailing, 20) // 右側のパディング
+                .padding(.bottom, 20) // 下側のパディング
             }
-            .background(customBaseColor.edgesIgnoringSafeArea(.all)) // Apply custom color
-            // MARK: - Ensure preferredColorScheme is NOT set here to allow system theme
         }
     }
 
@@ -528,7 +576,8 @@ struct HabitRowView: View {
     @Binding var showingEditHabitSheet: Bool
     let toggleCompletion: (Habit, Date) -> Void
     let deleteHabit: (IndexSet) -> Void // deleteHabit now accepts IndexSet
-    let customTextColor: Color
+    let customTextColor: Color // MARK: - customTextColorを追加
+    let customAccentColor: Color // MARK: - customAccentColorを追加
 
     var body: some View {
         HStack {
@@ -581,7 +630,7 @@ struct HabitRowView: View {
                 }) {
                     Image(systemName: "chart.bar.fill")
                         .font(.title2)
-                        .foregroundColor(.blue) // Graph icon color remains blue
+                        .foregroundColor(customAccentColor) // MARK: - グラフアイコンの色をアクセントカラーに変更
                 }
                 .buttonStyle(BorderlessButtonStyle())
             }
@@ -591,22 +640,29 @@ struct HabitRowView: View {
             }) {
                 Image(systemName: habit.isCompleted(on: selectedDate) ? "checkmark.circle.fill" : "circle")
                     .font(.title2)
-                    .foregroundColor(habit.isCompleted(on: selectedDate) ? .green : .gray) // Checkmark color remains green/gray
+                    .foregroundColor(habit.isCompleted(on: selectedDate) ? customAccentColor : customTextColor.opacity(0.5)) // MARK: - チェックマーク/円の色をアクセントカラー/テキストカラーに変更
             }
             .buttonStyle(BorderlessButtonStyle())
         }
-        .padding(.vertical, 8)
+        .padding(.horizontal, 15) // Card内の水平パディング
+        .padding(.vertical, 10) // Card内の垂直パディング
+        .background(Color(.systemBackground)) // カードの背景色（システム背景色でライト/ダークモードに対応）
+        .cornerRadius(12) // カードの角丸
+        .shadow(color: Color.black.opacity(0.1), radius: 5, x: 0, y: 3) // 控えめな影
         .opacity(habit.isCompleted(on: selectedDate) ? 0.6 : 1.0)
         .swipeActions(edge: .trailing) {
             Button(role: .destructive) {
-                // For swipe deletion to work with the original habits array index,
-                // it needs to identify the habit to delete using its ID here,
-                // rather than directly calling ContentView's deleteHabit.
-                // However, due to complexity with onMove, it's kept simple for now.
-                // (Note: If onMove and swipeActions are applied to the same ForEach,
-                // onMove may take precedence. Especially in edit mode.)
-                // In this revision, onMove is active in edit mode, and swipeActions is inactive.
-                // In normal mode, swipeActions is active.
+                // スワイプ削除は元のhabits配列のインデックスで動作させる必要があるため、
+                // ここでHabitのIDを使って削除対象を特定するように修正が必要
+                // ただし、onMoveとの兼ね合いで複雑になるため、ここでは一旦シンプルに
+                // deleteHabitクロージャはIndexSetを受け取るように変更済み
+                // 実際には、ContentViewでfilteredHabitsIndicesを管理し、
+                // そのインデックスをdeleteHabitに渡す必要があります。
+                // ここでは、onMoveの修正に集中するため、swipeActionsは既存のままにしています。
+                // (注意: onMoveとswipeActionsが同じForEachに適用される場合、
+                // onMoveが優先されることがあります。特に編集モードでは)
+                // 今回の修正では、編集モードではonMoveが有効になり、swipeActionsは無効になります。
+                // 通常モードではswipeActionsが有効になります。
             } label: {
                 HStack {
                     Image(systemName: "trash.fill")
