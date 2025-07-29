@@ -149,12 +149,13 @@ struct ContentView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.vertical, 10) // Increase vertical padding
+                    .padding(.top, -20) // MARK: - 上部の余白をさらに詰めるために負のパディングを調整
                     .background(customBaseColor) // Apply custom color
 
                     // MARK: - Embed CalendarView
                     CalendarView(month: currentMonth, habits: habits, selectedDate: $selectedDate)
                         .padding(.bottom, 10)
+                        .padding(.top, 0) // カレンダーの上部のパディングをゼロにする
 
                     // MARK: - Filtering options Custom Segmented Control (hidden in edit mode)
                     if editMode?.wrappedValue != .active { // Only show if not in edit mode
@@ -205,11 +206,22 @@ struct ContentView: View {
                                 }
                                 
                                 if reorderableHabits.isEmpty {
-                                    Text("習慣がありません。\n新しい習慣を追加してみましょう！")
-                                        .foregroundColor(customTextColor.opacity(0.7))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.vertical, 20)
+                                    // MARK: - Empty State UI for Edit Mode
+                                    VStack(alignment: .center) {
+                                        Image(systemName: "pawprint.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(customAccentColor.opacity(0.6))
+                                            .padding(.bottom, 10)
+                                        Text("習慣がありません。\n右下の＋ボタンから新しい習慣を追加しましょう！")
+                                            .font(.body)
+                                            .foregroundColor(customTextColor.opacity(0.7))
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal, 20)
+                                    }
                                     .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 40)
+                                    .listRowBackground(Color.clear) // ListRowの背景を透明に
+                                    .listRowSeparator(.hidden) // ListRowのセパレータを非表示に
                                 } else {
                                     ForEach(reorderableHabits) { habit in // Loop directly through Habit objects
                                         // MARK: - customAccentColorとcustomTextColorをHabitRowViewに渡す
@@ -260,11 +272,22 @@ struct ContentView: View {
                                     }
 
                                 if processedHabitsIndices.isEmpty {
-                                    Text("習慣がありません。\n新しい習慣を追加してみましょう！")
-                                        .foregroundColor(customTextColor.opacity(0.7))
-                                    .multilineTextAlignment(.center)
-                                    .padding(.vertical, 20)
+                                    // MARK: - Empty State UI for Normal Mode
+                                    VStack(alignment: .center) {
+                                        Image(systemName: "pawprint.fill")
+                                            .font(.system(size: 60))
+                                            .foregroundColor(customAccentColor.opacity(0.6))
+                                            .padding(.bottom, 10)
+                                        Text("習慣がありません。\n右下の＋ボタンから新しい習慣を追加しましょう！")
+                                            .font(.body)
+                                            .foregroundColor(customTextColor.opacity(0.7))
+                                            .multilineTextAlignment(.center)
+                                            .padding(.horizontal, 20)
+                                    }
                                     .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 40)
+                                    .listRowBackground(Color.clear) // ListRowの背景を透明に
+                                    .listRowSeparator(.hidden) // ListRowのセパレータを非表示に
                                 } else {
                                     ForEach(processedHabitsIndices, id: \.self) { index in
                                         let habit = habits[index] // Get habit directly
@@ -404,6 +427,7 @@ struct ContentView: View {
                         print("DEBUG: formatted currentMonth: \(monthFormatter.string(from: currentMonth))") // Debug print
                     })
                 }
+                .offset(y: -20) // MARK: - VStack全体を上に移動して余白を詰める
                 .background(customBaseColor.edgesIgnoringSafeArea(.all)) // Apply custom color
                 // MARK: - Ensure preferredColorScheme is NOT set here to allow system theme
 
@@ -412,9 +436,9 @@ struct ContentView: View {
                     showingAddHabitSheet = true
                 }) {
                     Image(systemName: "plus") // シンプルなプラスアイコン
-                        .font(.title2) // MARK: - アイコンサイズを調整 (.title -> .title2)
+                        .font(.title2) // アイコンサイズを調整 (.title -> .title2)
                         .foregroundColor(.white) // アイコンの色は白
-                        .padding(16) // MARK: - パディングでボタンの大きさを調整 (20 -> 16)
+                        .padding(16) // パディングでボタンの大きさを調整 (20 -> 16)
                         .background(customAccentColor) // アクセントカラーで塗りつぶし
                         .clipShape(Circle()) // 円形にクリップ
                         .shadow(color: Color.black.opacity(0.3), radius: 6, x: 0, y: 3) // 影を追加
