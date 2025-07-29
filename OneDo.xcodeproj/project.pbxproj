@@ -29,9 +29,30 @@
 		276E44D22E2F577300B1A6A2 /* OneDoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = OneDoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		2792A6A32E38AF1600F1D57D /* Exceptions for "OneDo" folder in "OneDoTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LaunchScreenView.swift,
+			);
+			target = 276E44C72E2F577300B1A6A2 /* OneDoTests */;
+		};
+		2792A6A42E38AF1600F1D57D /* Exceptions for "OneDo" folder in "OneDoUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				LaunchScreenView.swift,
+			);
+			target = 276E44D12E2F577300B1A6A2 /* OneDoUITests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		276E44BD2E2F577100B1A6A2 /* OneDo */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				2792A6A32E38AF1600F1D57D /* Exceptions for "OneDo" folder in "OneDoTests" target */,
+				2792A6A42E38AF1600F1D57D /* Exceptions for "OneDo" folder in "OneDoUITests" target */,
+			);
 			path = OneDo;
 			sourceTree = "<group>";
 		};
